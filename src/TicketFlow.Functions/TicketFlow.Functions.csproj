@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- OutputType=Exe will be re-added when Program.cs is scaffolded in the next phase -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TicketFlow.Core\TicketFlow.Core.csproj" />
+    <ProjectReference Include="..\TicketFlow.Infrastructure\TicketFlow.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

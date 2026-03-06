@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TicketFlow.Core\TicketFlow.Core.csproj" />
+    <ProjectReference Include="..\..\src\TicketFlow.Functions\TicketFlow.Functions.csproj" />
+  </ItemGroup>
+
+</Project>

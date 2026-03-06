@@ -1,0 +1,31 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+
+## NuGet
+*.nupkg
+*.snupkg
+packages/
+
+## Test results
+TestResults/
+coverage/
+
+## Publish
+publish/
+
+## Azure Functions
+local.settings.json
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Node / frontend
+node_modules/
+frontend/dist/
+frontend/.next/
