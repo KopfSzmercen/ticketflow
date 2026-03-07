@@ -1,0 +1,105 @@
+@description('Base name used when composing all resource names.')
+param appName string
+
+@description('Short environment name, e.g. dev or prod.')
+param environment string
+
+@description('Azure region for the Function App.')
+param location string
+
+@description('Storage account name — the Functions runtime connects via managed identity.')
+param storageAccountName string
+
+@description('Cosmos DB endpoint URL — the app connects via managed identity using DefaultAzureCredential.')
+param cosmosAccountEndpoint string
+
+@description('Primary blob endpoint of the storage account, used to build the deployment package container URL.')
+param storageAccountBlobEndpoint string
+
+var planName = 'asp-${appName}-${environment}'
+var functionAppName = 'func-${appName}-${environment}'
+// Flex Consumption requires a blob container URL for deployment package storage.
+var deploymentStorageContainerUrl = '${storageAccountBlobEndpoint}deploymentpackages'
+
+// Consumption plan on Linux (F1 Free)
+resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+  name: planName
+  location: location
+  kind: 'functionapp,linux'
+  sku: {
+    name: 'FC1'
+    tier: 'FlexConsumption'
+  }
+  properties: {
+    reserved: true // required for Linux-based plans
+  }
+}
+
+resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
+  name: functionAppName
+  location: location
+  kind: 'functionapp,linux'
+  // System-assigned managed identity — grants the app a principal that can be given
+  // RBAC roles on Storage and Cosmos DB without storing any credentials.
+  identity: {
+    type: 'SystemAssigned'
+  }
+  tags: {
+    app: appName
+    environment: environment
+  }
+  properties: {
+    serverFarmId: hostingPlan.id
+    httpsOnly: true
+    // Required for Flex Consumption (FC1) plans
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: deploymentStorageContainerUrl
+          authentication: {
+            type: 'SystemAssignedIdentity'
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: 40
+        instanceMemoryMB: 512
+      }
+      runtime: {
+        name: 'dotnet-isolated'
+        version: '10.0'
+      }
+    }
+    siteConfig: {
+      // linuxFxVersion is not applicable for Flex Consumption — runtime is set in functionAppConfig.
+      appSettings: [
+        {
+          // Managed-identity connection: the host looks up the account by name and
+          // authenticates with the Function App's system-assigned identity.
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccountName
+        }
+        {
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          // Endpoint only — no key. The app must use DefaultAzureCredential in code.
+          name: 'CosmosDb__AccountEndpoint'
+          value: cosmosAccountEndpoint
+        }
+      ]
+    }
+  }
+}
+
+@description('Default hostname of the deployed Function App.')
+output functionAppHostname string = functionApp.properties.defaultHostName
+
+@description('Principal ID of the Function App system-assigned managed identity.')
+output principalId string = functionApp.identity.principalId
