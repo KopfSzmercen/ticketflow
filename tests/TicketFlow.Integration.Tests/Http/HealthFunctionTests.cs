@@ -12,20 +12,13 @@ namespace TicketFlow.Integration.Tests.Http;
 
 [Collection("IntegrationTests")]
 [Trait("Category", "Integration")]
-public sealed class HealthFunctionTests
+public class HealthFunctionTests(CosmosDbContainerFixture fixture) : IntegrationTestsBase(fixture)
 {
-    private readonly CosmosDbContainerFixture _fixture;
-
-    public HealthFunctionTests(CosmosDbContainerFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
     [Fact]
     public async Task Run_WhenCosmosDbIsReachable_ReturnsHealthy()
     {
         // Arrange
-        await using var scope = _fixture.Services.CreateAsyncScope();
+        await using var scope = Fixture.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<HealthFunction>>();
         var healthFunction = new HealthFunction(dbContext, logger);

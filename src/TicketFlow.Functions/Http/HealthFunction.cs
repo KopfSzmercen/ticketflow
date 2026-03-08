@@ -6,7 +6,7 @@ using TicketFlow.Infrastructure.CosmosDb;
 
 namespace TicketFlow.Functions.Http;
 
-public class HealthFunction(TicketFlowDbContext dbContext, ILogger<HealthFunction> logger)
+public sealed class HealthFunction(TicketFlowDbContext dbContext, ILogger<HealthFunction> logger)
 {
     [Function("Health")]
     public async Task<IResult> Run(
