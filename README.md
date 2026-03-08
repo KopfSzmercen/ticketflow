@@ -25,9 +25,21 @@ dotnet build TicketFlow.sln
 # Unit tests only
 dotnet test --filter "Category!=Integration"
 
-# Integration tests (requires emulators)
-dotnet test --filter "Category=Integration"
+# Integration tests (requires Docker)
+dotnet test tests/TicketFlow.Integration.Tests --filter "Category=Integration"
 ```
+
+## Integration Tests
+
+Integration tests spin up the **Cosmos DB Emulator** automatically via Testcontainers — no need to run `docker compose` first. The test host wires up the real `CosmosDbModule` DI registration and calls `EnsureCreatedAsync()` before any test runs, giving full coverage of the EF Core / Cosmos path.
+
+### Testcontainers + Cosmos Emulator — key decisions
+
+- **Generic `ContainerBuilder`, not `CosmosDbBuilder`** — the Testcontainers Cosmos module maps ports randomly, which breaks the emulator's internal redirect logic. Using the low-level `ContainerBuilder` with fixed port bindings (8081 → 8081, 10250-10255 → 10250-10255) keeps the endpoint stable at `localhost:8081`. Also it significantly improved start time of the Cosmos Emulator.
+- **HTTP connection string, not HTTPS** — avoids SSL handshake failures against the emulator's self-signed certificate from inside the test process.
+- **`HttpClientFactory` with `DangerousAcceptAnyServerCertificateValidator`** — still required in the `CosmosClientOptions` because the Cosmos SDK internally verifies the endpoint even over HTTP in gateway mode.
+- **`HealthFunction` instantiated directly** — Azure Functions isolated-worker HTTP routing requires the real Functions runtime, which is too heavy to bring up in tests. Since the integration value is in the DB round-trip, `HealthFunction` is constructed from `IServiceProvider` and `Run()` is called directly with a `DefaultHttpContext`.
+- **Shared `ICollectionFixture`** — the emulator takes ~30 s to start; sharing it across all test classes via `[CollectionDefinition]` avoids restarting it per class.
 
 ## Local Development
 

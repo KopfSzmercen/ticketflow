@@ -26,6 +26,7 @@ public static class CosmosDbModule
                 switch (cosmosOptions.AuthMode)
                 {
                     case CosmosDbAuthMode.Emulator:
+
                         options.UseCosmos(cosmosOptions.ConnectionString!, "ticketflow", opt =>
                         {
                             //https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux%2Ccsharp&pivots=api-nosql#connect-to-the-emulator-from-the-sdk

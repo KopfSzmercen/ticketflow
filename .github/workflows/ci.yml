@@ -38,9 +38,29 @@ jobs:
       - name: Unit Tests
         run: dotnet test TicketFlow.sln --no-build --configuration Release --filter "Category!=Integration"
 
-  deploy:
+  integration-tests:
     runs-on: ubuntu-latest
     needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore TicketFlow.sln
+
+      - name: Build
+        run: dotnet build TicketFlow.sln --no-restore --configuration Release
+
+      - name: Integration Tests
+        run: dotnet test tests/TicketFlow.Integration.Tests --no-build --configuration Release --filter "Category=Integration"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, integration-tests]
 
     if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
 
