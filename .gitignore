@@ -20,6 +20,7 @@ publish/
 
 ## Azure Functions
 local.settings.json
+local.settings.azurecli.json
 
 ## OS
 .DS_Store

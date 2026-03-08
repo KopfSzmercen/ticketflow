@@ -1,8 +1,13 @@
-using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Hosting;
+using TicketFlow.Infrastructure.CosmosDb;
 
-var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
-    .Build();
+var builder = FunctionsApplication.CreateBuilder(args);
+builder.ConfigureFunctionsWebApplication();
 
-await host.RunAsync();
+builder.Services.AddCosmosDbModule(builder.Configuration);
+
+var app = builder.Build();
+
+await app.EnsureCosmosDbInitializedAsync();
+await app.RunAsync();

@@ -93,6 +93,10 @@ resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
           name: 'CosmosDb__AccountEndpoint'
           value: cosmosAccountEndpoint
         }
+        {
+          name: 'CosmosDb__AuthMode'
+          value: 'ManagedIdentity'
+        }
       ]
     }
   }

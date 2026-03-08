@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage__accountName": "YourStorageAccountName",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "CosmosDb__AuthMode": "AzureCli",
+    "CosmosDb__AccountEndpoint": "YourCosmosDbEndpoint"
+  }
+}

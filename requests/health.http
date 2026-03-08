@@ -1,0 +1,4 @@
+### Health check — local emulators (docker compose up -d && func start)
+GET http://localhost:7071/api/health
+
+###

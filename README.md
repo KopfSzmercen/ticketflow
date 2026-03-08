@@ -29,6 +29,103 @@ dotnet test --filter "Category!=Integration"
 dotnet test --filter "Category=Integration"
 ```
 
+## Local Development
+
+### Running against local emulators
+
+1. **Start emulators** (Azurite + Cosmos Emulator):
+
+   ```bash
+   docker compose up -d
+   # Wait for Cosmos Emulator to be healthy — takes ~60s on first run
+   docker compose ps
+   ```
+
+   **Cosmos DB Emulator Notes:**
+   - **SSL Validation:** For local development, SSL validation is disabled to simplify connectivity. //https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux%2Ccsharp&pivots=api-nosql#connect-to-the-emulator-from-the-sdk
+   - **Connection Mode:** Uses `Gateway` mode (HTTPS) as the emulator doesn't support Direct/TCP mode.
+   - **Endpoint Discovery:** Restricted to the local endpoint (`LimitToEndpoint = true`) to prevent timeouts from attempting to discover other regions.
+
+2. **Ensure `local.settings.json` is in emulator mode** (this is the default):
+
+   ```json
+   {
+     "IsEncrypted": false,
+     "Values": {
+       "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+       "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+       "CosmosDb__AuthMode": "Emulator",
+       "CosmosDb__ConnectionString": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+     }
+   }
+   ```
+
+3. **Start the Functions host:**
+
+   ```bash
+   dotnet run --project src/TicketFlow.Functions
+   ```
+
+4. **Verify** using `requests/health.http` (REST Client extension) or:
+   ```bash
+   curl http://localhost:7071/api/health
+   # Expected: {"status":"Healthy"}
+   ```
+
+### Running against live Azure (cloud-local)
+
+1. Copy the cloud settings template over the active settings file:
+
+   ```bash
+   cp src/TicketFlow.Functions/local.settings.azurecli.json src/TicketFlow.Functions/local.settings.json
+   ```
+
+2. Log in with the Azure CLI:
+
+   ```bash
+   az login
+   ```
+
+3. Ensure your personal account has the required RBAC roles on the dev resources:
+
+   ```bash
+   # Cosmos DB
+   az cosmosdb sql role assignment create \
+     --account-name cosmos-ticketflow-dev \
+     --resource-group rg-ticketflow-dev \
+     --role-definition-name "Cosmos DB Built-in Data Contributor" \
+     --principal-id $(az ad signed-in-user show --query id -o tsv) \
+     --scope "/"
+
+   # Storage
+   az role assignment create \
+     --role "Storage Blob Data Contributor" \
+     --assignee $(az ad signed-in-user show --query id -o tsv) \
+     --scope $(az storage account show -n <storage-account-name> -g rg-ticketflow-dev --query id -o tsv)
+   ```
+
+   > The storage account name is auto-generated. Find it with:
+   > `az storage account list -g rg-ticketflow-dev --query "[0].name" -o tsv`
+
+4. Start the Functions host and verify as above.
+
+### Settings files
+
+| File                                                    | Purpose                           | Gitignored |
+| ------------------------------------------------------- | --------------------------------- | ---------- |
+| `src/TicketFlow.Functions/local.settings.json`          | Active settings (never committed) | ✅         |
+| `src/TicketFlow.Functions/local.settings.azurecli.json` | Template for cloud-local runs     | ✅         |
+
+### Running from Rider / IntelliJ
+
+The Rider-bundled func CLI (v4.8.0) has two known issues with net10.0:
+
+1. **`local.settings.json` values are not forwarded to the isolated worker.** Workaround: set the required env vars directly in the Rider run configuration (**Run → Edit Configurations → Environment variables**).
+
+2. **`AzureCliCredential` cannot find `az`.** Rider launches processes with a sanitised PATH. Fix: add `PATH=/usr/bin:/usr/local/bin` (or the full output of `echo $PATH`) to the same environment variables section.
+
+The simplest alternative is to use `dotnet run --project src/TicketFlow.Functions` from the terminal — the SDK-bundled func CLI handles net10.0 correctly without any workarounds.
+
 ## Infrastructure
 
 All Azure resources are provisioned via Bicep. No manual portal clicks.
