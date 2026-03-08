@@ -10,5 +10,12 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="10.0.0"/>
     <PackageVersion Include="Azure.Identity" Version="1.18.0"/>
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3"/>
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.3"/>
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.3"/>
+    <!-- Test packages -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
+    <PackageVersion Include="xunit" Version="2.9.3"/>
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.1"/>
+    <PackageVersion Include="Shouldly" Version="4.3.0"/>
   </ItemGroup>
 </Project>

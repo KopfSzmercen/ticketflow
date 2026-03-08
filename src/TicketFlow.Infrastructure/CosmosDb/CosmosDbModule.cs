@@ -1,9 +1,9 @@
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace TicketFlow.Infrastructure.CosmosDb;
 
@@ -11,21 +11,22 @@ public static class CosmosDbModule
 {
     extension(IServiceCollection services)
     {
-        public IServiceCollection AddCosmosDbModule(IConfiguration config)
+        public IServiceCollection AddCosmosDbModule()
         {
-            var authMode = config["CosmosDb:AuthMode"] ?? "DefaultAzureCredential";
+            services.AddOptions<CosmosDbOptions>()
+                .BindConfiguration(CosmosDbOptions.SectionName)
+                .ValidateOnStart();
 
-            services.AddDbContext<TicketFlowDbContext>((_, options) =>
+            services.AddSingleton<IValidateOptions<CosmosDbOptions>, CosmosDbOptionsValidator>();
+
+            services.AddDbContext<TicketFlowDbContext>((sp, options) =>
             {
-                switch (authMode)
+                var cosmosOptions = sp.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
+
+                switch (cosmosOptions.AuthMode)
                 {
-                    case "Emulator":
-                        var connectionString = config["CosmosDb:ConnectionString"]
-                                               ?? throw new InvalidOperationException(
-                                                   "CosmosDb:ConnectionString is required for Emulator auth mode.");
-
-
-                        options.UseCosmos(connectionString, "ticketflow", opt =>
+                    case CosmosDbAuthMode.Emulator:
+                        options.UseCosmos(cosmosOptions.ConnectionString!, "ticketflow", opt =>
                         {
                             //https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux%2Ccsharp&pivots=api-nosql#connect-to-the-emulator-from-the-sdk
                             opt.HttpClientFactory(() => new HttpClient(new HttpClientHandler
@@ -34,33 +35,22 @@ public static class CosmosDbModule
                                         HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
                                 })
                             );
-
                             opt.ConnectionMode(ConnectionMode.Gateway);
                             opt.LimitToEndpoint();
                         });
-                        
                         break;
 
-                    case "ManagedIdentity":
-                        var miEndpoint = config["CosmosDb:AccountEndpoint"]
-                                         ?? throw new InvalidOperationException(
-                                             "CosmosDb:AccountEndpoint is required for ManagedIdentity auth mode.");
-                        options.UseCosmos(miEndpoint,
+                    case CosmosDbAuthMode.ManagedIdentity:
+                        options.UseCosmos(cosmosOptions.AccountEndpoint!,
                             new ManagedIdentityCredential(new ManagedIdentityCredentialOptions()), "ticketflow");
                         break;
 
-                    case "AzureCli":
-                        var cliEndpoint = config["CosmosDb:AccountEndpoint"]
-                                          ?? throw new InvalidOperationException(
-                                              "CosmosDb:AccountEndpoint is required for AzureCli auth mode.");
-                        options.UseCosmos(cliEndpoint, new AzureCliCredential(), "ticketflow");
+                    case CosmosDbAuthMode.AzureCli:
+                        options.UseCosmos(cosmosOptions.AccountEndpoint!, new AzureCliCredential(), "ticketflow");
                         break;
 
                     default:
-
-                        var endpoint = config["CosmosDb:AccountEndpoint"]
-                                       ?? throw new InvalidOperationException("CosmosDb:AccountEndpoint is required.");
-                        options.UseCosmos(endpoint, new DefaultAzureCredential(), "ticketflow");
+                        options.UseCosmos(cosmosOptions.AccountEndpoint!, new DefaultAzureCredential(), "ticketflow");
                         break;
                 }
             });

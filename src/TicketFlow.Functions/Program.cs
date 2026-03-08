@@ -5,7 +5,7 @@ using TicketFlow.Infrastructure.CosmosDb;
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
 
-builder.Services.AddCosmosDbModule(builder.Configuration);
+builder.Services.AddCosmosDbModule();
 
 var app = builder.Build();
 

@@ -6,8 +6,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\TicketFlow.Core\TicketFlow.Core.csproj" />
     <ProjectReference Include="..\..\src\TicketFlow.Functions\TicketFlow.Functions.csproj" />
+    <ProjectReference Include="..\..\src\TicketFlow.Infrastructure\TicketFlow.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
