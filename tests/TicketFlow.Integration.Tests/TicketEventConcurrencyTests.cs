@@ -25,7 +25,6 @@ public class TicketEventConcurrencyTests(CosmosDbContainerFixture fixture) : Int
             {
                 Id = ticketEventId,
                 Name = "Concurrent Event",
-                Capacity = 100,
                 Venue = "Test Venue",
                 TicketPrice = new Money(50, "USD"),
                 TotalCapacity = 100,

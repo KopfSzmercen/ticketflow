@@ -5,11 +5,10 @@ namespace TicketFlow.Functions.DTO;
 public sealed record TicketEventResponse(
     string Id,
     string Name,
-    int Capacity,
     string Venue,
     Money TicketPrice,
-    int AvailableTickets,
     int TotalCapacity,
+    int AvailableTickets,
     DateTimeOffset Date
 )
 {
@@ -18,11 +17,10 @@ public sealed record TicketEventResponse(
         return new TicketEventResponse(
             ticketEvent.Id,
             ticketEvent.Name,
-            ticketEvent.Capacity,
             ticketEvent.Venue,
             ticketEvent.TicketPrice,
-            ticketEvent.AvailableTickets,
             ticketEvent.TotalCapacity,
+            ticketEvent.AvailableTickets,
             ticketEvent.Date
         );
     }

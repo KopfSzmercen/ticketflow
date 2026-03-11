@@ -26,7 +26,6 @@ public class CreateEventFunctionTests(CosmosDbContainerFixture fixture) : Integr
 
         var request = new CreateEventFunction.Request(
             "Test Event",
-            100,
             "Test Venue",
             new Money(50, "USD"),
             100,
@@ -61,7 +60,6 @@ public class CreateEventFunctionTests(CosmosDbContainerFixture fixture) : Integr
 
         createdEvent.ShouldNotBeNull();
         createdEvent.Name.ShouldBe(request.Name);
-        createdEvent.Capacity.ShouldBe(request.Capacity);
         createdEvent.Venue.ShouldBe(request.Venue);
         createdEvent.TicketPrice.ShouldBeEquivalentTo(request.TicketPrice);
         createdEvent.TotalCapacity.ShouldBe(request.TotalCapacity);

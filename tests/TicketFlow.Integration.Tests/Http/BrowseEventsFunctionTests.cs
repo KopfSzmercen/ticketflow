@@ -28,7 +28,6 @@ public class BrowseEventsFunctionTests(CosmosDbContainerFixture fixture) : Integ
             Name = "Event 1",
             TicketPrice = new Money(30, "USD"),
             Venue = "Venue 1",
-            Capacity = 100,
             TotalCapacity = 100,
             Date = new DateTimeOffset(2024, 11, 30, 19, 0, 0, TimeSpan.Zero),
             AvailableTickets = 100
@@ -40,7 +39,6 @@ public class BrowseEventsFunctionTests(CosmosDbContainerFixture fixture) : Integ
             Name = "Event 2",
             TicketPrice = new Money(45, "USD"),
             Venue = "Venue 2",
-            Capacity = 150,
             TotalCapacity = 150,
             Date = new DateTimeOffset(2024, 12, 15, 20, 0, 0, TimeSpan.Zero),
             AvailableTickets = 150

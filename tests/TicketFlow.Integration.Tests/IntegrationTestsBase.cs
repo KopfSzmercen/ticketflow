@@ -33,6 +33,10 @@ public class IntegrationTestsBase : IAsyncLifetime
 
         var allTicketEvents = await dbContext.Events.ToListAsync();
         dbContext.Events.RemoveRange(allTicketEvents);
+
+        var allOrders = await dbContext.Orders.ToListAsync();
+        dbContext.Orders.RemoveRange(allOrders);
+
         await dbContext.SaveChangesAsync();
     }
 }

@@ -7,6 +7,8 @@ public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) 
 {
     public DbSet<TicketEvent> Events => Set<TicketEvent>();
 
+    public DbSet<Order> Orders => Set<Order>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<TicketEvent>(entity =>
@@ -20,6 +22,22 @@ public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) 
 
             modelBuilder.Entity<TicketEvent>()
                 .Property(e => e.ETag)
+                .IsETagConcurrency();
+        });
+
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.ToContainer("orders");
+            entity.HasKey(o => o.Id);
+            entity.HasPartitionKey(o => o.Id);
+
+            entity.ComplexProperty(o => o.TicketPrice,
+                priceBuilder => { priceBuilder.Property(p => p.Currency).HasConversion<string>(); });
+
+            entity.Property(o => o.Status)
+                .HasConversion<string>();
+
+            entity.Property(o => o.ETag)
                 .IsETagConcurrency();
         });
     }

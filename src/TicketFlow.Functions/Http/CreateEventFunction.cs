@@ -18,12 +18,11 @@ public sealed class CreateEventFunction(TicketFlowDbContext dbContext)
         {
             Id = Guid.NewGuid().ToString(),
             Name = newEvent.Name,
-            Capacity = newEvent.Capacity,
             Venue = newEvent.Venue,
             TicketPrice = newEvent.TicketPrice,
             TotalCapacity = newEvent.TotalCapacity,
             Date = newEvent.Date,
-            AvailableTickets = newEvent.Capacity
+            AvailableTickets = newEvent.TotalCapacity
         };
 
         await dbContext.Events.AddAsync(ticketEvent);
@@ -37,7 +36,6 @@ public sealed class CreateEventFunction(TicketFlowDbContext dbContext)
 
     public sealed record Request(
         string Name,
-        int Capacity,
         string Venue,
         Money TicketPrice,
         int TotalCapacity,

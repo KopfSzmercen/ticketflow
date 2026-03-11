@@ -26,7 +26,6 @@ public class GetEventFunctionTests(CosmosDbContainerFixture fixture) : Integrati
         {
             Id = Guid.NewGuid().ToString(),
             Name = "Test Event",
-            Capacity = 100,
             Venue = "Test Venue",
             TicketPrice = new Money(50, "USD"),
             TotalCapacity = 100,
@@ -68,7 +67,6 @@ public class GetEventFunctionTests(CosmosDbContainerFixture fixture) : Integrati
         retrievedEvent.ShouldNotBeNull();
         retrievedEvent.Id.ShouldBe(ticketEvent.Id);
         retrievedEvent.Name.ShouldBe(ticketEvent.Name);
-        retrievedEvent.Capacity.ShouldBe(ticketEvent.Capacity);
         retrievedEvent.Venue.ShouldBe(ticketEvent.Venue);
         retrievedEvent.TicketPrice.ShouldBeEquivalentTo(ticketEvent.TicketPrice);
         retrievedEvent.TotalCapacity.ShouldBe(ticketEvent.TotalCapacity);

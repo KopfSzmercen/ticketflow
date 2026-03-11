@@ -60,6 +60,20 @@ resource eventsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
   }
 }
 
+resource ordersContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = {
+  parent: database
+  name: 'orders'
+  properties: {
+    resource: {
+      id: 'orders'
+      partitionKey: {
+        paths: ['/id']
+        kind: 'Hash'
+      }
+    }
+  }
+}
+
 @description('Cosmos DB account name — used for data-plane role assignments.')
 output accountName string = cosmosAccount.name
 
