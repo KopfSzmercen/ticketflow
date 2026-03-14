@@ -20,5 +20,5 @@ public class TicketEvent
 
     public string? ETag { get; private set; }
 
-    public required int ReservationExpirationInSeconds { get; set; };
+    public required int ReservationExpirationInSeconds { get; set; }
 }
