@@ -116,7 +116,8 @@ public class GetOrderFunctionTests(CosmosDbContainerFixture fixture) : Integrati
             TicketPrice = new Money(60, "USD"),
             TotalCapacity = 20,
             Date = new DateTimeOffset(2025, 9, 1, 20, 0, 0, TimeSpan.Zero),
-            AvailableTickets = 20
+            AvailableTickets = 20,
+            ReservationExpirationInSeconds = 30
         };
 
         await dbContext.Events.AddAsync(ticketEvent);

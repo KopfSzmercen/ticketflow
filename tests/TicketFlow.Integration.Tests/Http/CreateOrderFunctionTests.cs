@@ -36,7 +36,8 @@ public class CreateOrderFunctionTests(CosmosDbContainerFixture fixture) : Integr
             TicketPrice = new Money(75, "USD"),
             TotalCapacity = 50,
             Date = new DateTimeOffset(2025, 6, 15, 19, 0, 0, TimeSpan.Zero),
-            AvailableTickets = 50
+            AvailableTickets = 50,
+            ReservationExpirationInSeconds = 30
         };
 
         await dbContext.Events.AddAsync(ticketEvent);
@@ -105,7 +106,8 @@ public class CreateOrderFunctionTests(CosmosDbContainerFixture fixture) : Integr
             TicketPrice = new Money(50, "USD"),
             TotalCapacity = 10,
             Date = new DateTimeOffset(2025, 8, 1, 18, 0, 0, TimeSpan.Zero),
-            AvailableTickets = 10
+            AvailableTickets = 10,
+            ReservationExpirationInSeconds = 30
         };
 
         await dbContext.Events.AddAsync(ticketEvent);

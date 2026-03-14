@@ -9,7 +9,8 @@ public sealed record TicketEventResponse(
     Money TicketPrice,
     int TotalCapacity,
     int AvailableTickets,
-    DateTimeOffset Date
+    DateTimeOffset Date,
+    int ReservationExpirationInSeconds
 )
 {
     public static TicketEventResponse FromTicketEvent(TicketEvent ticketEvent)
@@ -21,7 +22,8 @@ public sealed record TicketEventResponse(
             ticketEvent.TicketPrice,
             ticketEvent.TotalCapacity,
             ticketEvent.AvailableTickets,
-            ticketEvent.Date
+            ticketEvent.Date,
+            ticketEvent.ReservationExpirationInSeconds
         );
     }
 }

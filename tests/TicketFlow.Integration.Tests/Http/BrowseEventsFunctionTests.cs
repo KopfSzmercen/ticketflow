@@ -30,7 +30,8 @@ public class BrowseEventsFunctionTests(CosmosDbContainerFixture fixture) : Integ
             Venue = "Venue 1",
             TotalCapacity = 100,
             Date = new DateTimeOffset(2024, 11, 30, 19, 0, 0, TimeSpan.Zero),
-            AvailableTickets = 100
+            AvailableTickets = 100,
+            ReservationExpirationInSeconds = 30
         });
 
         dbContext.Events.Add(new TicketEvent
@@ -41,7 +42,8 @@ public class BrowseEventsFunctionTests(CosmosDbContainerFixture fixture) : Integ
             Venue = "Venue 2",
             TotalCapacity = 150,
             Date = new DateTimeOffset(2024, 12, 15, 20, 0, 0, TimeSpan.Zero),
-            AvailableTickets = 150
+            AvailableTickets = 150,
+            ReservationExpirationInSeconds = 30
         });
 
         await dbContext.SaveChangesAsync();

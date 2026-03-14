@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
 using TicketFlow.Core.Models;
@@ -13,7 +14,7 @@ public sealed class CreateOrderFunction(TicketFlowDbContext dbContext)
 {
     [Function("CreateOrder")]
     public async Task<IResult> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orders")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orders")] [FromBody]
         Request request,
         [DurableClient] DurableTaskClient durableClient
     )
@@ -37,7 +38,7 @@ public sealed class CreateOrderFunction(TicketFlowDbContext dbContext)
 
         await durableClient.ScheduleNewOrchestrationInstanceAsync(
             nameof(PlaceOrderOrchestrator),
-            new PlaceOrderInput(request.EventId, request.SimulatePaymentSuccess),
+            new PlaceOrderInput(request.EventId, request.SimulatePaymentSuccess, request.PayLater),
             new StartOrchestrationOptions { InstanceId = orderId }
         );
 
@@ -55,6 +56,7 @@ public sealed class CreateOrderFunction(TicketFlowDbContext dbContext)
         string AttendeeEmail,
         Money TicketPrice,
         //Used to deterministically simulate payment success or failure in the ProcessPaymentActivity, for demo purposes only
-        bool SimulatePaymentSuccess = true
+        bool SimulatePaymentSuccess = true,
+        bool PayLater = false
     );
 }

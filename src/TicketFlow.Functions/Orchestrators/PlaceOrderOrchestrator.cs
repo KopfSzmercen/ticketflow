@@ -5,7 +5,7 @@ using TicketFlow.Functions.Activities;
 
 namespace TicketFlow.Functions.Orchestrators;
 
-public sealed record PlaceOrderInput(string EventId, bool SimulatePaymentSuccess);
+public sealed record PlaceOrderInput(string EventId, bool SimulatePaymentSuccess, bool PayLater = false);
 
 /// <summary>
 ///     Durable orchestrator that coordinates the single-ticket purchase flow.
@@ -20,9 +20,21 @@ public static class PlaceOrderOrchestrator
         [OrchestrationTrigger] TaskOrchestrationContext context
     )
     {
-        var orderId = context.InstanceId;
         var input = context.GetInput<PlaceOrderInput>()
                     ?? throw new InvalidOperationException("Orchestrator input is required.");
+
+        if (input.PayLater)
+            await OrchestratePayLaterProcess(context, input);
+        else
+            await OrchestratePayNowProcess(context, input);
+    }
+
+    private static async Task OrchestratePayNowProcess(
+        TaskOrchestrationContext context,
+        PlaceOrderInput input
+    )
+    {
+        var orderId = context.InstanceId;
 
         await context.CallActivityAsync(
             nameof(UpdateOrderStatusActivity),
@@ -71,5 +83,64 @@ public static class PlaceOrderOrchestrator
                 nameof(UpdateOrderStatusActivity),
                 new UpdateOrderStatusActivity.Input(orderId, OrderStatus.Failed, "Payment was declined."));
         }
+    }
+
+    private static async Task OrchestratePayLaterProcess(TaskOrchestrationContext context, PlaceOrderInput input)
+    {
+        var orderId = context.InstanceId;
+
+        await context.CallActivityAsync(
+            nameof(UpdateOrderStatusActivity),
+            new UpdateOrderStatusActivity.Input(
+                orderId,
+                OrderStatus.Pending,
+                "Awaiting payment — customer chose to pay later."
+            )
+        );
+
+        var eventDetails = await context.CallActivityAsync<GetEventActivity.Result?>(
+            nameof(GetEventActivity),
+            input.EventId
+        );
+
+        if (eventDetails is null)
+        {
+            await context.CallActivityAsync(
+                nameof(UpdateOrderStatusActivity),
+                new UpdateOrderStatusActivity.Input(orderId, OrderStatus.Failed, "Event not found.")
+            );
+            return;
+        }
+
+        await context.CreateTimer(
+            context.CurrentUtcDateTime.AddSeconds(eventDetails.ReservationExpirationInSeconds),
+            CancellationToken.None
+        );
+
+        var paymentCompleted = await context.CallActivityAsync<bool>(
+            nameof(CheckPaymentStatusActivity),
+            new CheckPaymentStatusActivity.Input(orderId, input.SimulatePaymentSuccess)
+        );
+
+        if (paymentCompleted)
+        {
+            await context.CallActivityAsync(
+                nameof(UpdateOrderStatusActivity),
+                new UpdateOrderStatusActivity.Input(orderId, OrderStatus.Confirmed)
+            );
+
+            return;
+        }
+
+        await context.CallActivityAsync(
+            nameof(ReleaseTicketActivity),
+            new ReleaseTicketActivity.Input(orderId, input.EventId)
+        );
+
+        await context.CallActivityAsync(
+            nameof(UpdateOrderStatusActivity),
+            new UpdateOrderStatusActivity.Input(orderId, OrderStatus.Failed,
+                "Payment was not completed within the allowed time.")
+        );
     }
 }

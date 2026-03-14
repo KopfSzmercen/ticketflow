@@ -1,0 +1,16 @@
+### Create an order (Azure Functions local)
+POST http://localhost:7071/api/orders
+Content-Type: application/json
+
+{
+  "eventId": "673d8b5c-ae59-4bb9-891d-527a109c2be8",
+  "attendeeName": "Alice Example",
+  "attendeeEmail": "alice@example.com",
+  "ticketPrice": { "amount": 2500, "currency": "USD" },
+  "simulatePaymentSuccess": true
+}
+
+### Example using `curl`
+# curl -X POST http://localhost:7071/api/orders \
+#   -H "Content-Type: application/json" \
+#   -d '{"eventId":"<event-id>","attendeeName":"Alice Example","attendeeEmail":"alice@example.com","ticketPrice":{"amount":2500,"currency":"USD"},"simulatePaymentSuccess":true}'

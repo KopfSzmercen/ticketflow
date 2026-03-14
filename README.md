@@ -25,21 +25,36 @@ dotnet build TicketFlow.sln
 # Unit tests only
 dotnet test --filter "Category!=Integration"
 
-# Integration tests (requires Docker)
+# All integration tests (fast + durable E2E, requires Docker + func)
 dotnet test tests/TicketFlow.Integration.Tests --filter "Category=Integration"
+
+# Fast integration tests only (Cosmos-backed, no Functions host)
+dotnet test tests/TicketFlow.Integration.Tests --filter "Category=Integration&IntegrationType!=DurableE2E"
+
+# Durable end-to-end integration tests only (real Functions host + Azurite + Cosmos)
+dotnet test tests/TicketFlow.Integration.Tests --filter "IntegrationType=DurableE2E"
 ```
 
 ## Integration Tests
 
-Integration tests spin up the **Cosmos DB Emulator** automatically via Testcontainers — no need to run `docker compose` first. The test host wires up the real `CosmosDbModule` DI registration and calls `EnsureCreatedAsync()` before any test runs, giving full coverage of the EF Core / Cosmos path.
+Integration tests use **two collection fixtures**:
 
-### Testcontainers + Cosmos Emulator — key decisions
+- `IntegrationTests` (`CosmosDbContainerFixture`) for fast function-level integration tests with real Cosmos persistence.
+- `DurableIntegrationTests` (`DurableFunctionsHostFixture`) for runtime-backed durable end-to-end tests (real `func host`, Azurite, and Cosmos emulator).
+- Durable end-to-end tests carry trait `IntegrationType=DurableE2E` so CI and local runs can select them reliably without class-name filters.
 
-- **Generic `ContainerBuilder`, not `CosmosDbBuilder`** — the Testcontainers Cosmos module maps ports randomly, which breaks the emulator's internal redirect logic. Using the low-level `ContainerBuilder` with fixed port bindings (8081 → 8081, 10250-10255 → 10250-10255) keeps the endpoint stable at `localhost:8081`. Also it significantly improved start time of the Cosmos Emulator.
+This split keeps the main feedback loop fast while still validating real orchestration execution where it matters.
+
+### Fixture strategy and key decisions
+
+- **Two fixtures by design** — lightweight fixture for broad coverage, heavyweight fixture only for durable runtime scenarios.
+- **Generic `ContainerBuilder`, not `CosmosDbBuilder`** — the Testcontainers Cosmos module maps ports randomly, which breaks the emulator's internal redirect logic. Using the low-level `ContainerBuilder` keeps emulator connectivity stable in tests.
 - **HTTP connection string, not HTTPS** — avoids SSL handshake failures against the emulator's self-signed certificate from inside the test process.
 - **`HttpClientFactory` with `DangerousAcceptAnyServerCertificateValidator`** — still required in the `CosmosClientOptions` because the Cosmos SDK internally verifies the endpoint even over HTTP in gateway mode.
-- **`HealthFunction` instantiated directly** — Azure Functions isolated-worker HTTP routing requires the real Functions runtime, which is too heavy to bring up in tests. Since the integration value is in the DB round-trip, `HealthFunction` is constructed from `IServiceProvider` and `Run()` is called directly with a `DefaultHttpContext`.
-- **Shared `ICollectionFixture`** — the emulator takes ~30 s to start; sharing it across all test classes via `[CollectionDefinition]` avoids restarting it per class.
+- **Direct invocation for fast tests** — non-durable integration tests instantiate functions from `IServiceProvider` and execute with `DefaultHttpContext`.
+- **Real host for durable tests** — durable E2E tests launch `func host start`, call HTTP endpoints, then poll order state to assert terminal orchestration outcomes.
+
+Decision record: `ADR 006` in `adr/006-two-integration-test-fixtures.md`.
 
 ## Local Development
 
@@ -130,11 +145,18 @@ Integration tests spin up the **Cosmos DB Emulator** automatically via Testconta
 
 ### Running from Rider / IntelliJ
 
-The Rider-bundled func CLI (v4.8.0) has two known issues with net10.0:
+The Rider-bundled func CLI (v4.8.0) has known issues with net10.0:
 
 1. **`local.settings.json` values are not forwarded to the isolated worker.** Workaround: set the required env vars directly in the Rider run configuration (**Run → Edit Configurations → Environment variables**).
 
 2. **`AzureCliCredential` cannot find `az`.** Rider launches processes with a sanitised PATH. Fix: add `PATH=/usr/bin:/usr/local/bin` (or the full output of `echo $PATH`) to the same environment variables section.
+
+3. **Durable integration tests fail with "A compatible .NET SDK was not found"** when Rider launches `func` with only `/usr/lib/dotnet` (for example, .NET 9 only) while the repository `global.json` pins .NET 10 (`10.0.101`).
+   - Symptom: fixture throws `Azure Functions host exited early` and host logs show SDK resolution failure.
+   - Fix: in the Rider test run configuration, set environment variables so `func` resolves the correct SDK:
+     - `DOTNET_ROOT=/home/<your-user>/.dotnet`
+     - `PATH=/home/<your-user>/.dotnet:/home/<your-user>/.dotnet/tools:/usr/local/bin:/usr/bin:$PATH`
+   - Alternative: install the pinned SDK globally in `/usr/lib/dotnet`, or update `global.json` to a version present in Rider's environment.
 
 The simplest alternative is to use `dotnet run --project src/TicketFlow.Functions` from the terminal — the SDK-bundled func CLI handles net10.0 correctly without any workarounds.
 

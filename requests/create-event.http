@@ -1,0 +1,16 @@
+### Create an event (Azure Functions local)
+POST http://localhost:7071/api/events
+Content-Type: application/json
+
+{
+  "name": "Indie Rock Concert",
+  "venue": "Town Hall",
+  "ticketPrice": { "amount": 2500, "currency": "USD" },
+  "totalCapacity": 200,
+  "date": "2026-06-01T19:00:00Z"
+}
+
+### Example using `curl`
+# curl -X POST http://localhost:7071/api/events \
+#   -H "Content-Type: application/json" \
+#   -d '{"name":"Indie Rock Concert","venue":"Town Hall","ticketPrice":{"amount":2500,"currency":"USD"},"totalCapacity":200,"date":"2026-06-01T19:00:00Z", "reservationExpirationInSeconds": "60"}'

@@ -29,7 +29,8 @@ public class CreateEventFunctionTests(CosmosDbContainerFixture fixture) : Integr
             "Test Venue",
             new Money(50, "USD"),
             100,
-            new DateTimeOffset(2024, 12, 31, 20, 0, 0, TimeSpan.Zero)
+            new DateTimeOffset(2024, 12, 31, 20, 0, 0, TimeSpan.Zero),
+            20
         );
 
         var httpContext = new DefaultHttpContext
@@ -64,5 +65,6 @@ public class CreateEventFunctionTests(CosmosDbContainerFixture fixture) : Integr
         createdEvent.TicketPrice.ShouldBeEquivalentTo(request.TicketPrice);
         createdEvent.TotalCapacity.ShouldBe(request.TotalCapacity);
         createdEvent.Date.ShouldBe(request.Date);
+        createdEvent.ReservationExpirationInSeconds.ShouldBe(request.ReservationExpirationInSeconds);
     }
 }

@@ -55,8 +55,22 @@ jobs:
       - name: Build
         run: dotnet build TicketFlow.sln --no-restore --configuration Release
 
-      - name: Integration Tests
-        run: dotnet test tests/TicketFlow.Integration.Tests --no-build --configuration Release --filter "Category=Integration"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Azure Functions Core Tools v4
+        run: sudo npm i -g azure-functions-core-tools@4 --unsafe-perm true
+
+      - name: Verify Functions Core Tools
+        run: func --version
+
+      - name: Integration Tests (fast fixture)
+        run: dotnet test tests/TicketFlow.Integration.Tests --no-build --configuration Release --filter "Category=Integration&IntegrationType!=DurableE2E"
+
+      - name: Integration Tests (durable e2e fixture)
+        run: dotnet test tests/TicketFlow.Integration.Tests --no-build --configuration Release --filter "IntegrationType=DurableE2E"
 
   deploy:
     runs-on: ubuntu-latest

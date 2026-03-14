@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using TicketFlow.Core.Models;
 using TicketFlow.Functions.DTO;
 using TicketFlow.Infrastructure.CosmosDb;
@@ -10,7 +11,7 @@ public sealed class CreateEventFunction(TicketFlowDbContext dbContext)
 {
     [Function("CreateEvent")]
     public async Task<IResult> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "events")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "events")] [FromBody]
         Request newEvent
     )
     {
@@ -22,7 +23,8 @@ public sealed class CreateEventFunction(TicketFlowDbContext dbContext)
             TicketPrice = newEvent.TicketPrice,
             TotalCapacity = newEvent.TotalCapacity,
             Date = newEvent.Date,
-            AvailableTickets = newEvent.TotalCapacity
+            AvailableTickets = newEvent.TotalCapacity,
+            ReservationExpirationInSeconds = newEvent.ReservationExpirationInSeconds
         };
 
         await dbContext.Events.AddAsync(ticketEvent);
@@ -39,6 +41,7 @@ public sealed class CreateEventFunction(TicketFlowDbContext dbContext)
         string Venue,
         Money TicketPrice,
         int TotalCapacity,
-        DateTimeOffset Date
+        DateTimeOffset Date,
+        int ReservationExpirationInSeconds
     );
 }
