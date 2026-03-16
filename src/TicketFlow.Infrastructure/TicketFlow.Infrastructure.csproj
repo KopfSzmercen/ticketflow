@@ -9,6 +9,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
         <PackageReference Include="Azure.Identity"/>
+        <PackageReference Include="Azure.Messaging.ServiceBus"/>
     </ItemGroup>
 
     <ItemGroup>

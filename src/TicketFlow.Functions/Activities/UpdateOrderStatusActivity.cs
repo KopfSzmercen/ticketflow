@@ -5,7 +5,10 @@ using TicketFlow.Infrastructure.CosmosDb;
 
 namespace TicketFlow.Functions.Activities;
 
-public sealed class UpdateOrderStatusActivity(TicketFlowDbContext dbContext)
+public sealed class UpdateOrderStatusActivity(
+    TicketFlowDbContext dbContext,
+    IOrderCompletedEventPublisher orderCompletedEventPublisher
+)
 {
     [Function(nameof(UpdateOrderStatusActivity))]
     public async Task RunActivity(
@@ -27,6 +30,9 @@ public sealed class UpdateOrderStatusActivity(TicketFlowDbContext dbContext)
             order.FailureReason = input.FailureReason;
 
         await dbContext.SaveChangesAsync();
+
+        if (input.NewStatus == OrderStatus.Confirmed)
+            await orderCompletedEventPublisher.PublishAsync(order);
     }
 
     public sealed record Input(

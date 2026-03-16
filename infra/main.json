@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "17095832386695404379"
+      "version": "0.41.2.15936",
+      "templateHash": "8958504767101515149"
     }
   },
   "parameters": {
@@ -27,6 +27,24 @@
       "metadata": {
         "description": "Base name used when composing all resource names."
       }
+    },
+    "serviceBusOrderEventsTopicName": {
+      "type": "string",
+      "metadata": {
+        "description": "Service Bus topic for order lifecycle events."
+      }
+    },
+    "serviceBusEmailWorkerSubscriptionName": {
+      "type": "string",
+      "metadata": {
+        "description": "Subscription name for email worker."
+      }
+    },
+    "serviceBusAnalyticsWorkerSubscriptionName": {
+      "type": "string",
+      "metadata": {
+        "description": "Subscription name for analytics worker."
+      }
     }
   },
   "variables": {
@@ -41,7 +59,7 @@
     },
     "storage": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('storage-{0}', uniqueString('storage', deployment().name))]",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -66,8 +84,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "7101632536712546007"
+              "version": "0.41.2.15936",
+              "templateHash": "13592650482257581255"
             }
           },
           "parameters": {
@@ -112,6 +130,17 @@
                 "minimumTlsVersion": "TLS1_2",
                 "allowBlobPublicAccess": false
               }
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/default/deploymentpackages', variables('storageAccountName'))]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -121,6 +150,13 @@
                 "description": "Storage account name — used by the Function App to connect via managed identity."
               },
               "value": "[variables('storageAccountName')]"
+            },
+            "blobEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Primary blob service endpoint URL for the storage account."
+              },
+              "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.blob]"
             }
           }
         }
@@ -131,7 +167,7 @@
     },
     "cosmos": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('cosmos-{0}', uniqueString('cosmos', deployment().name))]",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -156,8 +192,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "18191435909978411089"
+              "version": "0.41.2.15936",
+              "templateHash": "1930544674286881732"
             }
           },
           "parameters": {
@@ -244,6 +280,25 @@
               "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('cosmosAccountName'), 'ticketflow')]"
               ]
+            },
+            {
+              "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+              "apiVersion": "2024-11-15",
+              "name": "[format('{0}/{1}/{2}', variables('cosmosAccountName'), 'ticketflow', 'orders')]",
+              "properties": {
+                "resource": {
+                  "id": "orders",
+                  "partitionKey": {
+                    "paths": [
+                      "/id"
+                    ],
+                    "kind": "Hash"
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('cosmosAccountName'), 'ticketflow')]"
+              ]
             }
           ],
           "outputs": {
@@ -268,9 +323,167 @@
         "resourceGroup"
       ]
     },
+    "serviceBus": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('serviceBus-{0}', uniqueString('serviceBus', deployment().name))]",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appName": {
+            "value": "[parameters('appName')]"
+          },
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "orderEventsTopicName": {
+            "value": "[parameters('serviceBusOrderEventsTopicName')]"
+          },
+          "emailWorkerSubscriptionName": {
+            "value": "[parameters('serviceBusEmailWorkerSubscriptionName')]"
+          },
+          "analyticsWorkerSubscriptionName": {
+            "value": "[parameters('serviceBusAnalyticsWorkerSubscriptionName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "17033542214869663722"
+            }
+          },
+          "parameters": {
+            "appName": {
+              "type": "string",
+              "metadata": {
+                "description": "Base name used when composing all resource names."
+              }
+            },
+            "environment": {
+              "type": "string",
+              "metadata": {
+                "description": "Short environment name, e.g. dev or prod."
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for Service Bus resources."
+              }
+            },
+            "orderEventsTopicName": {
+              "type": "string",
+              "metadata": {
+                "description": "Service Bus topic for order lifecycle events."
+              }
+            },
+            "emailWorkerSubscriptionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Subscription name for email worker."
+              }
+            },
+            "analyticsWorkerSubscriptionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Subscription name for analytics worker."
+              }
+            }
+          },
+          "variables": {
+            "namespaceName": "[format('sb-{0}-{1}', parameters('appName'), parameters('environment'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ServiceBus/namespaces",
+              "apiVersion": "2024-01-01",
+              "name": "[variables('namespaceName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard",
+                "tier": "Standard"
+              },
+              "properties": {
+                "publicNetworkAccess": "Enabled",
+                "minimumTlsVersion": "1.2"
+              }
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/topics",
+              "apiVersion": "2024-01-01",
+              "name": "[format('{0}/{1}', variables('namespaceName'), parameters('orderEventsTopicName'))]",
+              "properties": {
+                "enableBatchedOperations": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', variables('namespaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+              "apiVersion": "2024-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('namespaceName'), parameters('orderEventsTopicName'), parameters('emailWorkerSubscriptionName'))]",
+              "properties": {
+                "maxDeliveryCount": 10
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('namespaceName'), parameters('orderEventsTopicName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+              "apiVersion": "2024-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('namespaceName'), parameters('orderEventsTopicName'), parameters('analyticsWorkerSubscriptionName'))]",
+              "properties": {
+                "maxDeliveryCount": 10
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('namespaceName'), parameters('orderEventsTopicName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "namespaceName": {
+              "type": "string",
+              "value": "[variables('namespaceName')]"
+            },
+            "namespaceFqdn": {
+              "type": "string",
+              "value": "[format('{0}.servicebus.windows.net', variables('namespaceName'))]"
+            },
+            "topicName": {
+              "type": "string",
+              "value": "[parameters('orderEventsTopicName')]"
+            },
+            "emailSubscriptionName": {
+              "type": "string",
+              "value": "[parameters('emailWorkerSubscriptionName')]"
+            },
+            "analyticsSubscriptionName": {
+              "type": "string",
+              "value": "[parameters('analyticsWorkerSubscriptionName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "resourceGroup"
+      ]
+    },
     "functions": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('functions-{0}', uniqueString('functions', deployment().name))]",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -291,8 +504,23 @@
           "storageAccountName": {
             "value": "[reference('storage').outputs.accountName.value]"
           },
+          "storageAccountBlobEndpoint": {
+            "value": "[reference('storage').outputs.blobEndpoint.value]"
+          },
           "cosmosAccountEndpoint": {
             "value": "[reference('cosmos').outputs.accountEndpoint.value]"
+          },
+          "serviceBusNamespaceFqdn": {
+            "value": "[reference('serviceBus').outputs.namespaceFqdn.value]"
+          },
+          "serviceBusOrderEventsTopicName": {
+            "value": "[reference('serviceBus').outputs.topicName.value]"
+          },
+          "serviceBusEmailWorkerSubscriptionName": {
+            "value": "[reference('serviceBus').outputs.emailSubscriptionName.value]"
+          },
+          "serviceBusAnalyticsWorkerSubscriptionName": {
+            "value": "[reference('serviceBus').outputs.analyticsSubscriptionName.value]"
           }
         },
         "template": {
@@ -301,8 +529,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "785950985102254167"
+              "version": "0.41.2.15936",
+              "templateHash": "13457370787298774021"
             }
           },
           "parameters": {
@@ -335,11 +563,42 @@
               "metadata": {
                 "description": "Cosmos DB endpoint URL — the app connects via managed identity using DefaultAzureCredential."
               }
+            },
+            "storageAccountBlobEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Primary blob endpoint of the storage account, used to build the deployment package container URL."
+              }
+            },
+            "serviceBusNamespaceFqdn": {
+              "type": "string",
+              "metadata": {
+                "description": "Service Bus namespace FQDN used by the application in cloud mode."
+              }
+            },
+            "serviceBusOrderEventsTopicName": {
+              "type": "string",
+              "metadata": {
+                "description": "Service Bus topic for order lifecycle events."
+              }
+            },
+            "serviceBusEmailWorkerSubscriptionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Service Bus subscription used by email worker."
+              }
+            },
+            "serviceBusAnalyticsWorkerSubscriptionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Service Bus subscription used by analytics worker."
+              }
             }
           },
           "variables": {
             "planName": "[format('asp-{0}-{1}', parameters('appName'), parameters('environment'))]",
-            "functionAppName": "[format('func-{0}-{1}', parameters('appName'), parameters('environment'))]"
+            "functionAppName": "[format('func-{0}-{1}', parameters('appName'), parameters('environment'))]",
+            "deploymentStorageContainerUrl": "[format('{0}deploymentpackages', parameters('storageAccountBlobEndpoint'))]"
           },
           "resources": [
             {
@@ -349,8 +608,8 @@
               "location": "[parameters('location')]",
               "kind": "functionapp,linux",
               "sku": {
-                "name": "F1",
-                "tier": "Free"
+                "name": "FC1",
+                "tier": "FlexConsumption"
               },
               "properties": {
                 "reserved": true
@@ -358,7 +617,7 @@
             },
             {
               "type": "Microsoft.Web/sites",
-              "apiVersion": "2023-12-01",
+              "apiVersion": "2024-11-01",
               "name": "[variables('functionAppName')]",
               "location": "[parameters('location')]",
               "kind": "functionapp,linux",
@@ -372,8 +631,26 @@
               "properties": {
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]",
                 "httpsOnly": true,
+                "functionAppConfig": {
+                  "deployment": {
+                    "storage": {
+                      "type": "blobContainer",
+                      "value": "[variables('deploymentStorageContainerUrl')]",
+                      "authentication": {
+                        "type": "SystemAssignedIdentity"
+                      }
+                    }
+                  },
+                  "scaleAndConcurrency": {
+                    "maximumInstanceCount": 40,
+                    "instanceMemoryMB": 512
+                  },
+                  "runtime": {
+                    "name": "dotnet-isolated",
+                    "version": "10.0"
+                  }
+                },
                 "siteConfig": {
-                  "linuxFxVersion": "DOTNET-ISOLATED|10.0",
                   "appSettings": [
                     {
                       "name": "AzureWebJobsStorage__accountName",
@@ -388,16 +665,32 @@
                       "value": "~4"
                     },
                     {
-                      "name": "FUNCTIONS_WORKER_RUNTIME",
-                      "value": "dotnet-isolated"
-                    },
-                    {
                       "name": "CosmosDb__AccountEndpoint",
                       "value": "[parameters('cosmosAccountEndpoint')]"
                     },
                     {
-                      "name": "WEBSITE_RUN_FROM_PACKAGE",
-                      "value": "1"
+                      "name": "CosmosDb__AuthMode",
+                      "value": "ManagedIdentity"
+                    },
+                    {
+                      "name": "ServiceBus__FullyQualifiedNamespace",
+                      "value": "[parameters('serviceBusNamespaceFqdn')]"
+                    },
+                    {
+                      "name": "ServiceBus__AuthMode",
+                      "value": "ManagedIdentity"
+                    },
+                    {
+                      "name": "ServiceBus__TopicName",
+                      "value": "[parameters('serviceBusOrderEventsTopicName')]"
+                    },
+                    {
+                      "name": "ServiceBus__EmailSubscriptionName",
+                      "value": "[parameters('serviceBusEmailWorkerSubscriptionName')]"
+                    },
+                    {
+                      "name": "ServiceBus__AnalyticsSubscriptionName",
+                      "value": "[parameters('serviceBusAnalyticsWorkerSubscriptionName')]"
                     }
                   ]
                 }
@@ -413,14 +706,14 @@
               "metadata": {
                 "description": "Default hostname of the deployed Function App."
               },
-              "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2023-12-01').defaultHostName]"
+              "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-11-01').defaultHostName]"
             },
             "principalId": {
               "type": "string",
               "metadata": {
                 "description": "Principal ID of the Function App system-assigned managed identity."
               },
-              "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2023-12-01', 'full').identity.principalId]"
+              "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-11-01', 'full').identity.principalId]"
             }
           }
         }
@@ -428,12 +721,13 @@
       "dependsOn": [
         "cosmos",
         "resourceGroup",
+        "serviceBus",
         "storage"
       ]
     },
     "roleAssignments": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('roleAssignments-{0}', uniqueString('roleAssignments', deployment().name))]",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -448,6 +742,9 @@
           "cosmosAccountName": {
             "value": "[reference('cosmos').outputs.accountName.value]"
           },
+          "serviceBusNamespaceName": {
+            "value": "[reference('serviceBus').outputs.namespaceName.value]"
+          },
           "functionAppPrincipalId": {
             "value": "[reference('functions').outputs.principalId.value]"
           }
@@ -458,8 +755,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "279978098663548700"
+              "version": "0.41.2.15936",
+              "templateHash": "15658707920660983494"
             }
           },
           "parameters": {
@@ -480,6 +777,12 @@
               "metadata": {
                 "description": "Principal ID of the Function App system-assigned managed identity."
               }
+            },
+            "serviceBusNamespaceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Service Bus namespace to grant data-plane access to."
+              }
             }
           },
           "variables": {
@@ -487,6 +790,10 @@
               "b7e6dc6d-f1e8-4753-8033-0f276bb0955b",
               "974c5e8b-45b9-4653-ba55-5f855dd0fb88",
               "0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3"
+            ],
+            "serviceBusRoleIds": [
+              "69a216fc-b8fb-44d8-bc22-1f3c2cd27a39",
+              "4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0"
             ]
           },
           "resources": [
@@ -497,7 +804,7 @@
               },
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
               "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('functionAppPrincipalId'), variables('storageRoleIds')[copyIndex()])]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('storageRoleIds')[copyIndex()])]",
@@ -514,6 +821,21 @@
                 "principalId": "[parameters('functionAppPrincipalId')]",
                 "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName'))]"
               }
+            },
+            {
+              "copy": {
+                "name": "serviceBusRoleAssignments",
+                "count": "[length(variables('serviceBusRoleIds'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ServiceBus/namespaces', parameters('serviceBusNamespaceName'))]",
+              "name": "[guid(resourceId('Microsoft.ServiceBus/namespaces', parameters('serviceBusNamespaceName')), parameters('functionAppPrincipalId'), variables('serviceBusRoleIds')[copyIndex()])]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('serviceBusRoleIds')[copyIndex()])]",
+                "principalId": "[parameters('functionAppPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              }
             }
           ]
         }
@@ -522,6 +844,7 @@
         "cosmos",
         "functions",
         "resourceGroup",
+        "serviceBus",
         "storage"
       ]
     }

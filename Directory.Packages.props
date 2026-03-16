@@ -10,9 +10,11 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.16.0"/>
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="10.0.4"/>
     <PackageVersion Include="Azure.Identity" Version="1.18.0"/>
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.1"/>
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.4"/>
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.4"/>
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.4"/>
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0"/>
     <!-- Test packages -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
     <PackageVersion Include="xunit" Version="2.9.3"/>

@@ -4,6 +4,11 @@
     "AzureWebJobsStorage__accountName": "YourStorageAccountName",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "CosmosDb__AuthMode": "AzureCli",
-    "CosmosDb__AccountEndpoint": "YourCosmosDbEndpoint"
+    "CosmosDb__AccountEndpoint": "YourCosmosDbEndpoint",
+    "ServiceBus__AuthMode": "AzureCli",
+    "ServiceBus__FullyQualifiedNamespace": "your-servicebus-namespace.servicebus.windows.net",
+    "ServiceBus__TopicName": "order-events",
+    "ServiceBus__EmailSubscriptionName": "email-worker",
+    "ServiceBus__AnalyticsSubscriptionName": "analytics-worker"
   }
 }
