@@ -16,6 +16,18 @@ param cosmosAccountEndpoint string
 @description('Primary blob endpoint of the storage account, used to build the deployment package container URL.')
 param storageAccountBlobEndpoint string
 
+@description('Service Bus namespace FQDN used by the application in cloud mode.')
+param serviceBusNamespaceFqdn string
+
+@description('Service Bus topic for order lifecycle events.')
+param serviceBusOrderEventsTopicName string
+
+@description('Service Bus subscription used by email worker.')
+param serviceBusEmailWorkerSubscriptionName string
+
+@description('Service Bus subscription used by analytics worker.')
+param serviceBusAnalyticsWorkerSubscriptionName string
+
 var planName = 'asp-${appName}-${environment}'
 var functionAppName = 'func-${appName}-${environment}'
 // Flex Consumption requires a blob container URL for deployment package storage.
@@ -96,6 +108,26 @@ resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
         {
           name: 'CosmosDb__AuthMode'
           value: 'ManagedIdentity'
+        }
+        {
+          name: 'ServiceBus__FullyQualifiedNamespace'
+          value: serviceBusNamespaceFqdn
+        }
+        {
+          name: 'ServiceBus__AuthMode'
+          value: 'ManagedIdentity'
+        }
+        {
+          name: 'ServiceBus__TopicName'
+          value: serviceBusOrderEventsTopicName
+        }
+        {
+          name: 'ServiceBus__EmailSubscriptionName'
+          value: serviceBusEmailWorkerSubscriptionName
+        }
+        {
+          name: 'ServiceBus__AnalyticsSubscriptionName'
+          value: serviceBusAnalyticsWorkerSubscriptionName
         }
       ]
     }

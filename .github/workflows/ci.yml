@@ -58,7 +58,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Install Azure Functions Core Tools v4
         run: sudo npm i -g azure-functions-core-tools@4 --unsafe-perm true

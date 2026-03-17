@@ -9,6 +9,15 @@ param location string
 @description('Base name used when composing all resource names.')
 param appName string
 
+@description('Service Bus topic for order lifecycle events.')
+param serviceBusOrderEventsTopicName string
+
+@description('Subscription name for email worker.')
+param serviceBusEmailWorkerSubscriptionName string
+
+@description('Subscription name for analytics worker.')
+param serviceBusAnalyticsWorkerSubscriptionName string
+
 var resourceGroupName = 'rg-${appName}-${environment}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
@@ -34,6 +43,18 @@ module cosmos './modules/cosmos.bicep' = {
   }
 }
 
+module serviceBus './modules/serviceBus.bicep' = {
+  scope: resourceGroup
+  params: {
+    appName: appName
+    environment: environment
+    location: location
+    orderEventsTopicName: serviceBusOrderEventsTopicName
+    emailWorkerSubscriptionName: serviceBusEmailWorkerSubscriptionName
+    analyticsWorkerSubscriptionName: serviceBusAnalyticsWorkerSubscriptionName
+  }
+}
+
 module functions './modules/functions.bicep' = {
   scope: resourceGroup
   params: {
@@ -43,6 +64,10 @@ module functions './modules/functions.bicep' = {
     storageAccountName: storage.outputs.accountName
     storageAccountBlobEndpoint: storage.outputs.blobEndpoint
     cosmosAccountEndpoint: cosmos.outputs.accountEndpoint
+    serviceBusNamespaceFqdn: serviceBus.outputs.namespaceFqdn
+    serviceBusOrderEventsTopicName: serviceBus.outputs.topicName
+    serviceBusEmailWorkerSubscriptionName: serviceBus.outputs.emailSubscriptionName
+    serviceBusAnalyticsWorkerSubscriptionName: serviceBus.outputs.analyticsSubscriptionName
   }
 }
 
@@ -53,6 +78,7 @@ module roleAssignments './modules/roleAssignments.bicep' = {
   params: {
     storageAccountName: storage.outputs.accountName
     cosmosAccountName: cosmos.outputs.accountName
+    serviceBusNamespaceName: serviceBus.outputs.namespaceName
     functionAppPrincipalId: functions.outputs.principalId
   }
 }

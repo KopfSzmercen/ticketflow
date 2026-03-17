@@ -33,6 +33,9 @@ dotnet test tests/TicketFlow.Integration.Tests --filter "Category=Integration&In
 
 # Durable end-to-end integration tests only (real Functions host + Azurite + Cosmos)
 dotnet test tests/TicketFlow.Integration.Tests --filter "IntegrationType=DurableE2E"
+
+# Service Bus readiness harness tests only (no broker roundtrip assertions)
+dotnet test tests/TicketFlow.Integration.Tests --filter "IntegrationType=ServiceBusHarness"
 ```
 
 ## Integration Tests
@@ -60,32 +63,49 @@ Decision record: `ADR 006` in `adr/006-two-integration-test-fixtures.md`.
 
 ### Running against local emulators
 
-1. **Start emulators** (Azurite + Cosmos Emulator):
+1. **Start emulators** (Azurite + Cosmos Emulator + Service Bus Emulator + SQL Edge sidecar):
 
    ```bash
    docker compose up -d
-   # Wait for Cosmos Emulator to be healthy — takes ~60s on first run
-   docker compose ps
    ```
 
-   **Cosmos DB Emulator Notes:**
-   - **SSL Validation:** For local development, SSL validation is disabled to simplify connectivity. //https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux%2Ccsharp&pivots=api-nosql#connect-to-the-emulator-from-the-sdk
-   - **Connection Mode:** Uses `Gateway` mode (HTTPS) as the emulator doesn't support Direct/TCP mode.
-   - **Endpoint Discovery:** Restricted to the local endpoint (`LimitToEndpoint = true`) to prevent timeouts from attempting to discover other regions.
+# Wait for Cosmos Emulator and Service Bus Emulator to be healthy
+
+docker compose ps
+
+````
+
+**Cosmos DB Emulator Notes:**
+- **SSL Validation:** For local development, SSL validation is disabled to simplify connectivity. //https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux%2Ccsharp&pivots=api-nosql#connect-to-the-emulator-from-the-sdk
+- **Connection Mode:** Uses `Gateway` mode (HTTPS) as the emulator doesn't support Direct/TCP mode.
+- **Endpoint Discovery:** Restricted to the local endpoint (`LimitToEndpoint = true`) to prevent timeouts from attempting to discover other regions.
+
+**Service Bus Emulator Notes:**
+- The emulator requires a SQL Edge dependency container (`sqledge`) and starts with static entities from `emulators/servicebus/config.json`.
+- Runtime messaging connection string (local app process):
+  - `Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;`
+- Management/Admin operations should use port `5300`:
+  - `Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;`
 
 2. **Ensure `local.settings.json` is in emulator mode** (this is the default):
 
-   ```json
-   {
-     "IsEncrypted": false,
-     "Values": {
-       "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-       "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-       "CosmosDb__AuthMode": "Emulator",
-       "CosmosDb__ConnectionString": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
-     }
-   }
-   ```
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "CosmosDb__AuthMode": "Emulator",
+     "CosmosDb__ConnectionString": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
+     "ServiceBus__AuthMode": "Emulator",
+     "ServiceBus__ConnectionString": "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+     "ServiceBus__AdministrationConnectionString": "Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+     "ServiceBus__TopicName": "order-events",
+     "ServiceBus__EmailSubscriptionName": "email-worker",
+     "ServiceBus__AnalyticsSubscriptionName": "analytics-worker"
+  }
+}
+```
 
 3. **Start the Functions host:**
 
@@ -129,6 +149,17 @@ Decision record: `ADR 006` in `adr/006-two-integration-test-fixtures.md`.
      --role "Storage Blob Data Contributor" \
      --assignee $(az ad signed-in-user show --query id -o tsv) \
      --scope $(az storage account show -n <storage-account-name> -g rg-ticketflow-dev --query id -o tsv)
+
+   # Service Bus
+   az role assignment create \
+     --role "Azure Service Bus Data Sender" \
+     --assignee $(az ad signed-in-user show --query id -o tsv) \
+     --scope $(az servicebus namespace show -n sb-ticketflow-dev -g rg-ticketflow-dev --query id -o tsv)
+
+   az role assignment create \
+     --role "Azure Service Bus Data Receiver" \
+     --assignee $(az ad signed-in-user show --query id -o tsv) \
+     --scope $(az servicebus namespace show -n sb-ticketflow-dev -g rg-ticketflow-dev --query id -o tsv)
    ```
 
    > The storage account name is auto-generated. Find it with:
@@ -216,3 +247,4 @@ az deployment sub create \
 ```bash
 az group delete --name rg-ticketflow-dev --yes --no-wait
 ```
+````

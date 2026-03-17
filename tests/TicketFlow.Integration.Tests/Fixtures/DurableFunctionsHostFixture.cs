@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TicketFlow.Infrastructure.CosmosDb;
+using TicketFlow.Infrastructure.ServiceBus;
 using Xunit;
 
 namespace TicketFlow.Integration.Tests.Fixtures;
@@ -71,7 +72,19 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     [$"{CosmosDbOptions.SectionName}:AuthMode"] = nameof(CosmosDbAuthMode.Emulator),
-                    [$"{CosmosDbOptions.SectionName}:ConnectionString"] = connectionString
+                    [$"{CosmosDbOptions.SectionName}:ConnectionString"] = connectionString,
+                    ["ServiceBus"] =
+                        "Endpoint=sb://127.0.0.1:5672/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                    ["ServiceBusTriggerConnection"] =
+                        "Endpoint=sb://127.0.0.1:5672/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                    [$"{ServiceBusOptions.SectionName}:AuthMode"] = nameof(ServiceBusAuthMode.Emulator),
+                    [$"{ServiceBusOptions.SectionName}:ConnectionString"] =
+                        "Endpoint=sb://127.0.0.1:5672/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                    [$"{ServiceBusOptions.SectionName}:AdministrationConnectionString"] =
+                        "Endpoint=sb://127.0.0.1:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                    [$"{ServiceBusOptions.SectionName}:TopicName"] = "order-events",
+                    [$"{ServiceBusOptions.SectionName}:EmailSubscriptionName"] = "email-worker",
+                    [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker"
                 });
             })
             .ConfigureServices((_, services) => services.AddCosmosDbModule())
@@ -152,7 +165,19 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
                 ["AzureWebJobsStorage"] = azuriteConnectionString,
                 ["CosmosDb__AuthMode"] = nameof(CosmosDbAuthMode.Emulator),
                 ["CosmosDb__ConnectionString"] = cosmosConnectionString,
-                ["AzureFunctionsJobHost__extensions__durableTask__hubName"] = $"tf{Guid.NewGuid().ToString("N")[..20]}"
+                ["AzureFunctionsJobHost__extensions__durableTask__hubName"] = $"tf{Guid.NewGuid().ToString("N")[..20]}",
+                ["ServiceBus"] =
+                    "Endpoint=sb://127.0.0.1:5672/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                ["ServiceBusTriggerConnection"] =
+                    "Endpoint=sb://127.0.0.1:5672/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                [$"{ServiceBusOptions.SectionName}:AuthMode"] = nameof(ServiceBusAuthMode.Emulator),
+                [$"{ServiceBusOptions.SectionName}:ConnectionString"] =
+                    "Endpoint=sb://127.0.0.1:5672/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                [$"{ServiceBusOptions.SectionName}:AdministrationConnectionString"] =
+                    "Endpoint=sb://127.0.0.1:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                [$"{ServiceBusOptions.SectionName}:TopicName"] = "order-events",
+                [$"{ServiceBusOptions.SectionName}:EmailSubscriptionName"] = "email-worker",
+                [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker"
             }
         };
 
