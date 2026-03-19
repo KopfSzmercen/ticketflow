@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TicketFlow.Infrastructure.BlobStorage;
 using TicketFlow.Infrastructure.CosmosDb;
 using TicketFlow.Infrastructure.ServiceBus;
 using Xunit;
@@ -165,6 +166,9 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
                 ["AzureWebJobsStorage"] = azuriteConnectionString,
                 ["CosmosDb__AuthMode"] = nameof(CosmosDbAuthMode.Emulator),
                 ["CosmosDb__ConnectionString"] = cosmosConnectionString,
+                ["TicketStorage__AuthMode"] = nameof(TicketStorageAuthMode.Emulator),
+                ["TicketStorage__ConnectionString"] = azuriteConnectionString,
+                ["TicketStorage__Containers__tickets"] = "tickets",
                 ["AzureFunctionsJobHost__extensions__durableTask__hubName"] = $"tf{Guid.NewGuid().ToString("N")[..20]}",
                 ["ServiceBus"] =
                     "Endpoint=sb://127.0.0.1:5672/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",

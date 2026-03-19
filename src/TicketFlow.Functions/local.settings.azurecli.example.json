@@ -9,6 +9,9 @@
     "ServiceBus__FullyQualifiedNamespace": "your-servicebus-namespace.servicebus.windows.net",
     "ServiceBus__TopicName": "order-events",
     "ServiceBus__EmailSubscriptionName": "email-worker",
-    "ServiceBus__AnalyticsSubscriptionName": "analytics-worker"
+    "ServiceBus__AnalyticsSubscriptionName": "analytics-worker",
+    "TicketStorage__AuthMode": "AzureCli",
+    "TicketStorage__AccountName": "yourstorageaccountname",
+    "TicketStorage__Containers__tickets": "tickets"
   }
 }

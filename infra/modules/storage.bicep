@@ -38,8 +38,19 @@ resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/con
   }
 }
 
+// Dedicated container for ticket artifacts generated after order confirmation.
+resource ticketsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  name: '${storageAccount.name}/default/tickets'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
 @description('Storage account name — used by the Function App to connect via managed identity.')
 output accountName string = storageAccount.name
 
 @description('Primary blob service endpoint URL for the storage account.')
 output blobEndpoint string = storageAccount.properties.primaryEndpoints.blob
+
+@description('Blob container name used for generated ticket artifacts.')
+output ticketsContainerName string = 'tickets'

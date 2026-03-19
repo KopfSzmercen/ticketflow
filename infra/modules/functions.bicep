@@ -129,6 +129,18 @@ resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
           name: 'ServiceBus__AnalyticsSubscriptionName'
           value: serviceBusAnalyticsWorkerSubscriptionName
         }
+        {
+          name: 'TicketStorage__AuthMode'
+          value: 'ManagedIdentity'
+        }
+        {
+          name: 'TicketStorage__AccountName'
+          value: storageAccountName
+        }
+        {
+          name: 'TicketStorage__Containers__tickets'
+          value: 'tickets'
+        }
       ]
     }
   }

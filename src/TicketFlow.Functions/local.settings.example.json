@@ -11,6 +11,9 @@
     "ServiceBus__AdministrationConnectionString": "Endpoint=sb://127.0.0.1:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
     "ServiceBus__TopicName": "order-events",
     "ServiceBus__EmailSubscriptionName": "email-worker",
-    "ServiceBus__AnalyticsSubscriptionName": "analytics-worker"
+    "ServiceBus__AnalyticsSubscriptionName": "analytics-worker",
+    "TicketStorage__AuthMode": "Emulator",
+    "TicketStorage__ConnectionString": "UseDevelopmentStorage=true",
+    "TicketStorage__Containers__tickets": "tickets"
   }
 }
