@@ -175,7 +175,7 @@ docker compose ps
      "Values": {
        "TicketStorage__AuthMode": "AzureCli",
        "TicketStorage__AccountName": "<storage-account-name>",
-      "TicketStorage__Containers__tickets": "tickets"
+       "TicketStorage__Containers__tickets": "tickets"
      }
    }
    ```
