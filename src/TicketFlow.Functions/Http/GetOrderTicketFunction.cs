@@ -1,4 +1,3 @@
-using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
 using TicketFlow.Functions.DTO;
@@ -20,17 +19,13 @@ public sealed class GetOrderTicketFunction(IFileStorage fileStorage)
     {
         var blobPath = QrWorkerTrigger.BuildBlobPath(orderId);
 
-        try
-        {
-            await using var contentStream = await fileStorage.OpenReadAsync(
-                BlobContainerAliases.Tickets,
-                blobPath,
-                cancellationToken);
-        }
-        catch (RequestFailedException ex) when (ex.Status == StatusCodes.Status404NotFound)
-        {
+        var ticketExists = await fileStorage.ExistsAsync(
+            BlobContainerAliases.Tickets,
+            blobPath,
+            cancellationToken);
+
+        if (!ticketExists)
             return Results.NotFound();
-        }
 
         var readSasUri = await fileStorage.GetReadSasUriAsync(
             BlobContainerAliases.Tickets,

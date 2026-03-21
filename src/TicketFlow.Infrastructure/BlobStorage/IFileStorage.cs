@@ -16,6 +16,11 @@ public interface IFileStorage
         string blobName,
         CancellationToken cancellationToken = default);
 
+    Task<bool> ExistsAsync(
+        string containerAlias,
+        string blobName,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteIfExistsAsync(
         string containerAlias,
         string blobName,

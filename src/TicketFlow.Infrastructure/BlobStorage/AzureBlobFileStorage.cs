@@ -41,6 +41,18 @@ public sealed class AzureBlobFileStorage(
         return blobClient.OpenReadAsync(cancellationToken: cancellationToken);
     }
 
+    public async Task<bool> ExistsAsync(
+        string containerAlias,
+        string blobName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
+
+        var blobClient = GetBlobClient(containerAlias, blobName);
+        var response = await blobClient.ExistsAsync(cancellationToken);
+        return response.Value;
+    }
+
     public async Task<bool> DeleteIfExistsAsync(
         string containerAlias,
         string blobName,
