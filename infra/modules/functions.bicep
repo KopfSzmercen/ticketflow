@@ -28,6 +28,9 @@ param serviceBusEmailWorkerSubscriptionName string
 @description('Service Bus subscription used by analytics worker.')
 param serviceBusAnalyticsWorkerSubscriptionName string
 
+@description('Service Bus subscription used by QR worker.')
+param serviceBusQrWorkerSubscriptionName string
+
 var planName = 'asp-${appName}-${environment}'
 var functionAppName = 'func-${appName}-${environment}'
 // Flex Consumption requires a blob container URL for deployment package storage.
@@ -128,6 +131,10 @@ resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
         {
           name: 'ServiceBus__AnalyticsSubscriptionName'
           value: serviceBusAnalyticsWorkerSubscriptionName
+        }
+        {
+          name: 'ServiceBus__QrSubscriptionName'
+          value: serviceBusQrWorkerSubscriptionName
         }
         {
           name: 'TicketStorage__AuthMode'

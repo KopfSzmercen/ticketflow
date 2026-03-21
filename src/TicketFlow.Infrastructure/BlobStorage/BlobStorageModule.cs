@@ -2,6 +2,7 @@ using Azure.Core;
 using Azure.Identity;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace TicketFlow.Infrastructure.BlobStorage;
@@ -44,6 +45,29 @@ public static class BlobStorageModule
             services.AddSingleton<IFileStorage, AzureBlobFileStorage>();
 
             return services;
+        }
+    }
+
+    extension(IHost host)
+    {
+        public async Task<IHost> EnsureBlobContainersInitializedAsync(CancellationToken cancellationToken = default)
+        {
+            await using var scope = host.Services.CreateAsyncScope();
+            var options = scope.ServiceProvider.GetRequiredService<IOptions<TicketStorageOptions>>().Value;
+
+            // For cloud environments, containers are expected to be provisioned by IaC.
+            if (options.AuthMode != TicketStorageAuthMode.Emulator)
+                return host;
+
+            var blobServiceClient = scope.ServiceProvider.GetRequiredService<BlobServiceClient>();
+
+            foreach (var containerName in options.Containers.Values.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+                await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+            }
+
+            return host;
         }
     }
 }

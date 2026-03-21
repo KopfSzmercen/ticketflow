@@ -15,6 +15,9 @@ public sealed class ServiceBusOptionsValidator : IValidateOptions<ServiceBusOpti
         if (string.IsNullOrWhiteSpace(options.AnalyticsSubscriptionName))
             return ValidateOptionsResult.Fail("ServiceBus:AnalyticsSubscriptionName is required.");
 
+        if (string.IsNullOrWhiteSpace(options.QrSubscriptionName))
+            return ValidateOptionsResult.Fail("ServiceBus:QrSubscriptionName is required.");
+
         if (options.AuthMode == ServiceBusAuthMode.Emulator)
         {
             if (string.IsNullOrWhiteSpace(options.ConnectionString))

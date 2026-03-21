@@ -3,7 +3,7 @@ POST http://localhost:7071/api/orders
 Content-Type: application/json
 
 {
-  "eventId": "673d8b5c-ae59-4bb9-891d-527a109c2be8",
+  "eventId": "00f9fc40-ca3b-479a-8fb8-e58662faf2f9",
   "attendeeName": "Alice Example",
   "attendeeEmail": "alice@example.com",
   "ticketPrice": { "amount": 2500, "currency": "USD" },

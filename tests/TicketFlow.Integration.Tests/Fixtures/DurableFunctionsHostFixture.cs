@@ -26,7 +26,12 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
 
     private readonly IContainer _azuriteContainer =
         new ContainerBuilder("mcr.microsoft.com/azure-storage/azurite:latest")
-            .WithCommand("azurite", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0")
+            .WithCommand(
+                "azurite",
+                "--skipApiVersionCheck",
+                "--blobHost", "0.0.0.0",
+                "--queueHost", "0.0.0.0",
+                "--tableHost", "0.0.0.0")
             .WithPortBinding(10000, true)
             .WithPortBinding(10001, true)
             .WithPortBinding(10002, true)
@@ -85,7 +90,8 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
                         "Endpoint=sb://127.0.0.1:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
                     [$"{ServiceBusOptions.SectionName}:TopicName"] = "order-events",
                     [$"{ServiceBusOptions.SectionName}:EmailSubscriptionName"] = "email-worker",
-                    [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker"
+                    [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker",
+                    [$"{ServiceBusOptions.SectionName}:QrSubscriptionName"] = "qr-worker"
                 });
             })
             .ConfigureServices((_, services) => services.AddCosmosDbModule())
@@ -181,7 +187,8 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
                     "Endpoint=sb://127.0.0.1:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
                 [$"{ServiceBusOptions.SectionName}:TopicName"] = "order-events",
                 [$"{ServiceBusOptions.SectionName}:EmailSubscriptionName"] = "email-worker",
-                [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker"
+                [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker",
+                [$"{ServiceBusOptions.SectionName}:QrSubscriptionName"] = "qr-worker"
             }
         };
 

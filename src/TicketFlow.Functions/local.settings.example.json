@@ -12,6 +12,7 @@
     "ServiceBus__TopicName": "order-events",
     "ServiceBus__EmailSubscriptionName": "email-worker",
     "ServiceBus__AnalyticsSubscriptionName": "analytics-worker",
+    "ServiceBus__QrSubscriptionName": "qr-worker",
     "TicketStorage__AuthMode": "Emulator",
     "TicketStorage__ConnectionString": "UseDevelopmentStorage=true",
     "TicketStorage__Containers__tickets": "tickets"
