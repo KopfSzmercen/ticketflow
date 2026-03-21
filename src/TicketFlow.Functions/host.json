@@ -1,3 +1,21 @@
 {
-  "version": "2.0"
+  "version": "2.0",
+  "logging": {
+    "logLevel": {
+      "default": "Warning",
+      "Host.Results": "Information",
+      "Function": "Information",
+      "Microsoft": "Warning",
+      "Azure": "Warning",
+      "Microsoft.Azure.WebJobs.Extensions.DurableTask": "Warning"
+    },
+    "applicationInsights": {
+      "enableDependencyTracking": false,
+      "samplingSettings": {
+        "isEnabled": true,
+        "maxTelemetryItemsPerSecond": 1,
+        "excludedTypes": "Request;Exception"
+      }
+    }
+  }
 }

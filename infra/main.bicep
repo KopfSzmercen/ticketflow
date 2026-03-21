@@ -21,6 +21,28 @@ param serviceBusAnalyticsWorkerSubscriptionName string
 @description('Subscription name for QR worker.')
 param serviceBusQrWorkerSubscriptionName string
 
+@description('Retention period in days for monitoring data.')
+@minValue(30)
+@maxValue(730)
+param monitoringRetentionInDays int
+
+@description('Daily ingestion cap for Application Insights in GB.')
+@minValue(1)
+@maxValue(100)
+param monitoringDailyCapGb int
+
+@description('Telemetry profile for runtime logging behavior (minimal or balanced).')
+@allowed([
+  'minimal'
+  'balanced'
+])
+param monitoringSamplingProfile string
+
+@description('Initial adaptive sampling percentage for Application Insights.')
+@minValue(1)
+@maxValue(100)
+param monitoringSamplingPercentage int
+
 var resourceGroupName = 'rg-${appName}-${environment}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
@@ -59,6 +81,17 @@ module serviceBus './modules/serviceBus.bicep' = {
   }
 }
 
+module monitoring './modules/monitoring.bicep' = {
+  scope: resourceGroup
+  params: {
+    appName: appName
+    environment: environment
+    location: location
+    retentionInDays: monitoringRetentionInDays
+    dailyCapGb: monitoringDailyCapGb
+  }
+}
+
 module functions './modules/functions.bicep' = {
   scope: resourceGroup
   params: {
@@ -73,6 +106,9 @@ module functions './modules/functions.bicep' = {
     serviceBusEmailWorkerSubscriptionName: serviceBus.outputs.emailSubscriptionName
     serviceBusAnalyticsWorkerSubscriptionName: serviceBus.outputs.analyticsSubscriptionName
     serviceBusQrWorkerSubscriptionName: serviceBus.outputs.qrSubscriptionName
+    applicationInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
+    telemetryProfile: monitoringSamplingProfile
+    telemetrySamplingPercentage: monitoringSamplingPercentage
   }
 }
 

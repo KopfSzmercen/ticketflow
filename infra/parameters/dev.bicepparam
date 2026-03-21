@@ -9,3 +9,7 @@ param serviceBusOrderEventsTopicName = 'order-events'
 param serviceBusEmailWorkerSubscriptionName = 'email-worker'
 param serviceBusAnalyticsWorkerSubscriptionName = 'analytics-worker'
 param serviceBusQrWorkerSubscriptionName = 'qr-worker'
+param monitoringRetentionInDays = 30
+param monitoringDailyCapGb = 1
+param monitoringSamplingProfile = 'minimal'
+param monitoringSamplingPercentage = 10
