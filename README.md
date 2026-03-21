@@ -83,33 +83,33 @@ docker compose ps
 **Service Bus Emulator Notes:**
 - The emulator requires a SQL Edge dependency container (`sqledge`) and starts with static entities from `emulators/servicebus/config.json`.
 - Runtime messaging connection string (local app process):
-  - `Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;`
+- `Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;`
 - Management/Admin operations should use port `5300`:
-  - `Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;`
+- `Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;`
 
 2. **Ensure `local.settings.json` is in emulator mode** (this is the default):
 
 ```json
 {
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "CosmosDb__AuthMode": "Emulator",
-     "CosmosDb__ConnectionString": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
-     "ServiceBus__AuthMode": "Emulator",
-     "ServiceBus__ConnectionString": "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
-     "ServiceBus__AdministrationConnectionString": "Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
-     "ServiceBus__TopicName": "order-events",
-     "ServiceBus__EmailSubscriptionName": "email-worker",
-     "ServiceBus__AnalyticsSubscriptionName": "analytics-worker",
-     "ServiceBus__QrSubscriptionName": "qr-worker",
-     "TicketStorage__AuthMode": "Emulator",
-     "TicketStorage__ConnectionString": "UseDevelopmentStorage=true",
-     "TicketStorage__Containers__tickets": "tickets"
-  }
+"IsEncrypted": false,
+"Values": {
+  "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+  "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+  "CosmosDb__AuthMode": "Emulator",
+   "CosmosDb__ConnectionString": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
+   "ServiceBus__AuthMode": "Emulator",
+   "ServiceBus__ConnectionString": "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+   "ServiceBus__AdministrationConnectionString": "Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+   "ServiceBus__TopicName": "order-events",
+   "ServiceBus__EmailSubscriptionName": "email-worker",
+   "ServiceBus__AnalyticsSubscriptionName": "analytics-worker",
+   "ServiceBus__QrSubscriptionName": "qr-worker",
+   "TicketStorage__AuthMode": "Emulator",
+   "TicketStorage__ConnectionString": "UseDevelopmentStorage=true",
+   "TicketStorage__Containers__tickets": "tickets"
 }
-```
+}
+````
 
 3. **Start the Functions host:**
 
@@ -169,7 +169,7 @@ docker compose ps
    > The storage account name is auto-generated. Find it with:
    > `az storage account list -g rg-ticketflow-dev --query "[0].name" -o tsv`
 
-5. Ensure `local.settings.json` contains Ticket Storage cloud-local settings:
+4. Ensure `local.settings.json` contains Ticket Storage cloud-local settings:
 
    ```json
    {
@@ -181,7 +181,7 @@ docker compose ps
    }
    ```
 
-6. Start the Functions host and verify as above.
+5. Start the Functions host and verify as above.
 
 ### Settings files
 
@@ -219,6 +219,7 @@ infra/
   modules/
     storage.bicep         # Storage Account (required by Functions runtime)
     cosmos.bicep          # Cosmos DB account + database + events container
+    monitoring.bicep      # Log Analytics workspace + workspace-based App Insights
     functions.bicep       # Consumption App Service Plan + Function App
   parameters/
     dev.bicepparam        # Dev environment values
@@ -258,9 +259,75 @@ az deployment sub create \
   --parameters infra/parameters/dev.bicepparam
 ```
 
+## Observability (Low-Cost Profile)
+
+The platform uses workspace-based Application Insights linked to Log Analytics.
+
+- Resource naming follows the existing environment pattern:
+  - `log-<appName>-<environment>`
+  - `appi-<appName>-<environment>`
+- Function App telemetry ingestion is configured through `APPLICATIONINSIGHTS_CONNECTION_STRING`.
+- Managed identity remains unchanged for Storage, Cosmos DB, and Service Bus access.
+
+### Cost controls (per environment)
+
+Set these values in environment parameter files:
+
+- `monitoringRetentionInDays` (target: `30`)
+- `monitoringDailyCapGb` (dev default: `1`)
+- `monitoringSamplingProfile` (`minimal` or `balanced`)
+- `monitoringSamplingPercentage` (dev default: `10`)
+
+Recommended defaults:
+
+1. Dev: `minimal`, 10% sampling, 1 GB/day cap.
+2. Stage: start with `minimal`; raise to `balanced` if incident diagnostics are insufficient.
+3. Prod: prefer `balanced` when troubleshooting depth matters more than strict ingestion minimization.
+
+### Where to view logs
+
+1. Azure Portal -> Application Insights (`appi-...`) -> Logs.
+2. Run KQL queries against the linked workspace tables.
+
+### KQL snippets
+
+Recent requests (invocation outcomes):
+
+```kusto
+requests
+| where timestamp > ago(30m)
+| project timestamp, name, resultCode, success, duration, operation_Id
+| order by timestamp desc
+```
+
+Recent warnings and errors from traces:
+
+```kusto
+traces
+| where timestamp > ago(30m)
+| where severityLevel >= 2
+| project timestamp, severityLevel, message, operation_Id, cloud_RoleName
+| order by timestamp desc
+```
+
+Failed operations with correlated traces:
+
+```kusto
+let FailedOps = requests
+| where timestamp > ago(2h)
+| where success == false
+| project operation_Id, requestName=name, resultCode, reqTimestamp=timestamp;
+FailedOps
+| join kind=leftouter (
+    traces
+    | where timestamp > ago(2h)
+    | project operation_Id, traceTimestamp=timestamp, severityLevel, message
+) on operation_Id
+| order by reqTimestamp desc, traceTimestamp desc
+```
+
 ### Tear down
 
 ```bash
 az group delete --name rg-ticketflow-dev --yes --no-wait
 ```
-````

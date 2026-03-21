@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "5723685430496103434"
+      "templateHash": "2818014349127668842"
     }
   },
   "parameters": {
@@ -44,6 +44,46 @@
       "type": "string",
       "metadata": {
         "description": "Subscription name for analytics worker."
+      }
+    },
+    "serviceBusQrWorkerSubscriptionName": {
+      "type": "string",
+      "metadata": {
+        "description": "Subscription name for QR worker."
+      }
+    },
+    "monitoringRetentionInDays": {
+      "type": "int",
+      "minValue": 30,
+      "maxValue": 730,
+      "metadata": {
+        "description": "Retention period in days for monitoring data."
+      }
+    },
+    "monitoringDailyCapGb": {
+      "type": "int",
+      "minValue": 1,
+      "maxValue": 100,
+      "metadata": {
+        "description": "Daily ingestion cap for Application Insights in GB."
+      }
+    },
+    "monitoringSamplingProfile": {
+      "type": "string",
+      "allowedValues": [
+        "minimal",
+        "balanced"
+      ],
+      "metadata": {
+        "description": "Telemetry profile for runtime logging behavior (minimal or balanced)."
+      }
+    },
+    "monitoringSamplingPercentage": {
+      "type": "int",
+      "minValue": 1,
+      "maxValue": 100,
+      "metadata": {
+        "description": "Initial adaptive sampling percentage for Application Insights."
       }
     }
   },
@@ -179,7 +219,9 @@
           }
         }
       },
-      "dependsOn": ["resourceGroup"]
+      "dependsOn": [
+        "resourceGroup"
+      ]
     },
     "cosmos": {
       "type": "Microsoft.Resources/deployments",
@@ -286,7 +328,9 @@
                 "resource": {
                   "id": "events",
                   "partitionKey": {
-                    "paths": ["/id"],
+                    "paths": [
+                      "/id"
+                    ],
                     "kind": "Hash"
                   }
                 }
@@ -303,7 +347,9 @@
                 "resource": {
                   "id": "orders",
                   "partitionKey": {
-                    "paths": ["/id"],
+                    "paths": [
+                      "/id"
+                    ],
                     "kind": "Hash"
                   }
                 }
@@ -331,7 +377,9 @@
           }
         }
       },
-      "dependsOn": ["resourceGroup"]
+      "dependsOn": [
+        "resourceGroup"
+      ]
     },
     "serviceBus": {
       "type": "Microsoft.Resources/deployments",
@@ -361,6 +409,9 @@
           },
           "analyticsWorkerSubscriptionName": {
             "value": "[parameters('serviceBusAnalyticsWorkerSubscriptionName')]"
+          },
+          "qrWorkerSubscriptionName": {
+            "value": "[parameters('serviceBusQrWorkerSubscriptionName')]"
           }
         },
         "template": {
@@ -370,7 +421,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "17033542214869663722"
+              "templateHash": "9945779877067722555"
             }
           },
           "parameters": {
@@ -408,6 +459,12 @@
               "type": "string",
               "metadata": {
                 "description": "Subscription name for analytics worker."
+              }
+            },
+            "qrWorkerSubscriptionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Subscription name for QR worker."
               }
             }
           },
@@ -461,6 +518,17 @@
               "dependsOn": [
                 "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('namespaceName'), parameters('orderEventsTopicName'))]"
               ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+              "apiVersion": "2024-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('namespaceName'), parameters('orderEventsTopicName'), parameters('qrWorkerSubscriptionName'))]",
+              "properties": {
+                "maxDeliveryCount": 10
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('namespaceName'), parameters('orderEventsTopicName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -483,11 +551,180 @@
             "analyticsSubscriptionName": {
               "type": "string",
               "value": "[parameters('analyticsWorkerSubscriptionName')]"
+            },
+            "qrSubscriptionName": {
+              "type": "string",
+              "value": "[parameters('qrWorkerSubscriptionName')]"
             }
           }
         }
       },
-      "dependsOn": ["resourceGroup"]
+      "dependsOn": [
+        "resourceGroup"
+      ]
+    },
+    "monitoring": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('monitoring-{0}', uniqueString('monitoring', deployment().name))]",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appName": {
+            "value": "[parameters('appName')]"
+          },
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "retentionInDays": {
+            "value": "[parameters('monitoringRetentionInDays')]"
+          },
+          "dailyCapGb": {
+            "value": "[parameters('monitoringDailyCapGb')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "9875263498868618372"
+            }
+          },
+          "parameters": {
+            "appName": {
+              "type": "string",
+              "metadata": {
+                "description": "Base name used when composing all resource names."
+              }
+            },
+            "environment": {
+              "type": "string",
+              "metadata": {
+                "description": "Short environment name, e.g. dev or prod."
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for monitoring resources."
+              }
+            },
+            "retentionInDays": {
+              "type": "int",
+              "minValue": 30,
+              "maxValue": 730,
+              "metadata": {
+                "description": "Retention period in days for Log Analytics workspace data."
+              }
+            },
+            "dailyCapGb": {
+              "type": "int",
+              "minValue": 1,
+              "maxValue": 100,
+              "metadata": {
+                "description": "Daily ingestion cap for Application Insights in GB."
+              }
+            }
+          },
+          "variables": {
+            "logAnalyticsWorkspaceName": "[format('log-{0}-{1}', parameters('appName'), parameters('environment'))]",
+            "applicationInsightsName": "[format('appi-{0}-{1}', parameters('appName'), parameters('environment'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2023-09-01",
+              "name": "[variables('logAnalyticsWorkspaceName')]",
+              "location": "[parameters('location')]",
+              "tags": {
+                "app": "[parameters('appName')]",
+                "environment": "[parameters('environment')]"
+              },
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": "[parameters('retentionInDays')]",
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[variables('applicationInsightsName')]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "tags": {
+                "app": "[parameters('appName')]",
+                "environment": "[parameters('environment')]"
+              },
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
+                "Flow_Type": "Bluefield",
+                "Request_Source": "rest",
+                "IngestionMode": "LogAnalytics",
+                "DisableLocalAuth": true,
+                "RetentionInDays": "[parameters('retentionInDays')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]"
+              ]
+            },
+            {
+              "type": "microsoft.insights/components/pricingPlans",
+              "apiVersion": "2017-10-01",
+              "name": "[format('{0}/{1}', variables('applicationInsightsName'), 'current')]",
+              "properties": {
+                "planType": "Basic",
+                "cap": "[parameters('dailyCapGb')]",
+                "stopSendNotificationWhenHitCap": false,
+                "stopSendNotificationWhenHitThreshold": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "applicationInsightsConnectionString": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Insights connection string for ingestion from Functions runtime."
+              },
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').ConnectionString]"
+            },
+            "applicationInsightsName": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Insights component name."
+              },
+              "value": "[variables('applicationInsightsName')]"
+            },
+            "logAnalyticsWorkspaceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics workspace name."
+              },
+              "value": "[variables('logAnalyticsWorkspaceName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "resourceGroup"
+      ]
     },
     "functions": {
       "type": "Microsoft.Resources/deployments",
@@ -529,6 +766,18 @@
           },
           "serviceBusAnalyticsWorkerSubscriptionName": {
             "value": "[reference('serviceBus').outputs.analyticsSubscriptionName.value]"
+          },
+          "serviceBusQrWorkerSubscriptionName": {
+            "value": "[reference('serviceBus').outputs.qrSubscriptionName.value]"
+          },
+          "applicationInsightsConnectionString": {
+            "value": "[reference('monitoring').outputs.applicationInsightsConnectionString.value]"
+          },
+          "telemetryProfile": {
+            "value": "[parameters('monitoringSamplingProfile')]"
+          },
+          "telemetrySamplingPercentage": {
+            "value": "[parameters('monitoringSamplingPercentage')]"
           }
         },
         "template": {
@@ -538,7 +787,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "15492618289485608752"
+              "templateHash": "17252302790878174268"
             }
           },
           "parameters": {
@@ -601,12 +850,44 @@
               "metadata": {
                 "description": "Service Bus subscription used by analytics worker."
               }
+            },
+            "serviceBusQrWorkerSubscriptionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Service Bus subscription used by QR worker."
+              }
+            },
+            "applicationInsightsConnectionString": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Insights connection string for telemetry ingestion."
+              }
+            },
+            "telemetryProfile": {
+              "type": "string",
+              "allowedValues": [
+                "minimal",
+                "balanced"
+              ],
+              "metadata": {
+                "description": "Telemetry profile (minimal for lowest cost, balanced for higher fidelity)."
+              }
+            },
+            "telemetrySamplingPercentage": {
+              "type": "int",
+              "minValue": 1,
+              "maxValue": 100,
+              "metadata": {
+                "description": "Initial adaptive sampling percentage used by the Functions host."
+              }
             }
           },
           "variables": {
             "planName": "[format('asp-{0}-{1}', parameters('appName'), parameters('environment'))]",
             "functionAppName": "[format('func-{0}-{1}', parameters('appName'), parameters('environment'))]",
-            "deploymentStorageContainerUrl": "[format('{0}deploymentpackages', parameters('storageAccountBlobEndpoint'))]"
+            "deploymentStorageContainerUrl": "[format('{0}deploymentpackages', parameters('storageAccountBlobEndpoint'))]",
+            "effectiveDefaultLogLevel": "[if(equals(parameters('telemetryProfile'), 'minimal'), 'Warning', 'Information')]",
+            "effectiveDependencyTracking": "[if(equals(parameters('telemetryProfile'), 'minimal'), 'false', 'true')]"
           },
           "resources": [
             {
@@ -701,6 +982,10 @@
                       "value": "[parameters('serviceBusAnalyticsWorkerSubscriptionName')]"
                     },
                     {
+                      "name": "ServiceBus__QrSubscriptionName",
+                      "value": "[parameters('serviceBusQrWorkerSubscriptionName')]"
+                    },
+                    {
                       "name": "TicketStorage__AuthMode",
                       "value": "ManagedIdentity"
                     },
@@ -711,6 +996,38 @@
                     {
                       "name": "TicketStorage__Containers__tickets",
                       "value": "tickets"
+                    },
+                    {
+                      "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                      "value": "[parameters('applicationInsightsConnectionString')]"
+                    },
+                    {
+                      "name": "AzureFunctionsJobHost__logging__logLevel__default",
+                      "value": "[variables('effectiveDefaultLogLevel')]"
+                    },
+                    {
+                      "name": "AzureFunctionsJobHost__logging__logLevel__Microsoft",
+                      "value": "[variables('effectiveDefaultLogLevel')]"
+                    },
+                    {
+                      "name": "AzureFunctionsJobHost__logging__logLevel__Azure",
+                      "value": "[variables('effectiveDefaultLogLevel')]"
+                    },
+                    {
+                      "name": "AzureFunctionsJobHost__logging__applicationInsights__samplingSettings__initialSamplingPercentage",
+                      "value": "[string(parameters('telemetrySamplingPercentage'))]"
+                    },
+                    {
+                      "name": "AzureFunctionsJobHost__logging__applicationInsights__samplingSettings__minSamplingPercentage",
+                      "value": "[if(equals(parameters('telemetryProfile'), 'minimal'), '5', '10')]"
+                    },
+                    {
+                      "name": "AzureFunctionsJobHost__logging__applicationInsights__samplingSettings__maxSamplingPercentage",
+                      "value": "[if(equals(parameters('telemetryProfile'), 'minimal'), '20', '50')]"
+                    },
+                    {
+                      "name": "AzureFunctionsJobHost__logging__applicationInsights__enableDependencyTracking",
+                      "value": "[variables('effectiveDependencyTracking')]"
                     }
                   ]
                 }
@@ -738,7 +1055,13 @@
           }
         }
       },
-      "dependsOn": ["cosmos", "resourceGroup", "serviceBus", "storage"]
+      "dependsOn": [
+        "cosmos",
+        "monitoring",
+        "resourceGroup",
+        "serviceBus",
+        "storage"
+      ]
     },
     "roleAssignments": {
       "type": "Microsoft.Resources/deployments",

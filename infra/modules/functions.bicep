@@ -31,10 +31,27 @@ param serviceBusAnalyticsWorkerSubscriptionName string
 @description('Service Bus subscription used by QR worker.')
 param serviceBusQrWorkerSubscriptionName string
 
+@description('Application Insights connection string for telemetry ingestion.')
+param applicationInsightsConnectionString string
+
+@description('Telemetry profile (minimal for lowest cost, balanced for higher fidelity).')
+@allowed([
+  'minimal'
+  'balanced'
+])
+param telemetryProfile string
+
+@description('Initial adaptive sampling percentage used by the Functions host.')
+@minValue(1)
+@maxValue(100)
+param telemetrySamplingPercentage int
+
 var planName = 'asp-${appName}-${environment}'
 var functionAppName = 'func-${appName}-${environment}'
 // Flex Consumption requires a blob container URL for deployment package storage.
 var deploymentStorageContainerUrl = '${storageAccountBlobEndpoint}deploymentpackages'
+var effectiveDefaultLogLevel = telemetryProfile == 'minimal' ? 'Warning' : 'Information'
+var effectiveDependencyTracking = telemetryProfile == 'minimal' ? 'false' : 'true'
 
 // Consumption plan on Linux (F1 Free)
 resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
@@ -147,6 +164,40 @@ resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
         {
           name: 'TicketStorage__Containers__tickets'
           value: 'tickets'
+        }
+        {
+          // Workspace-based Application Insights ingestion (no instrumentation key).
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: applicationInsightsConnectionString
+        }
+        {
+          // Keep invocation outcomes while reducing low-value noise by default.
+          name: 'AzureFunctionsJobHost__logging__logLevel__default'
+          value: effectiveDefaultLogLevel
+        }
+        {
+          name: 'AzureFunctionsJobHost__logging__logLevel__Microsoft'
+          value: effectiveDefaultLogLevel
+        }
+        {
+          name: 'AzureFunctionsJobHost__logging__logLevel__Azure'
+          value: effectiveDefaultLogLevel
+        }
+        {
+          name: 'AzureFunctionsJobHost__logging__applicationInsights__samplingSettings__initialSamplingPercentage'
+          value: string(telemetrySamplingPercentage)
+        }
+        {
+          name: 'AzureFunctionsJobHost__logging__applicationInsights__samplingSettings__minSamplingPercentage'
+          value: telemetryProfile == 'minimal' ? '5' : '10'
+        }
+        {
+          name: 'AzureFunctionsJobHost__logging__applicationInsights__samplingSettings__maxSamplingPercentage'
+          value: telemetryProfile == 'minimal' ? '20' : '50'
+        }
+        {
+          name: 'AzureFunctionsJobHost__logging__applicationInsights__enableDependencyTracking'
+          value: effectiveDependencyTracking
         }
       ]
     }
