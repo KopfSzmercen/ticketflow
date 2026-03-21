@@ -24,6 +24,7 @@ public class IntegrationTestsBase : IAsyncLifetime
     public virtual async Task DisposeAsync()
     {
         await ClearDatabaseAsync();
+        await Fixture.ClearTicketsContainerAsync();
     }
 
     private async Task ClearDatabaseAsync()

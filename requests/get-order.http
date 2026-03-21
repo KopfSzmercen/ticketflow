@@ -1,0 +1,4 @@
+### GET request to example server
+GET http://localhost:7071/api/orders/32a74eb5-d27e-46c7-bac5-452e9603d534
+
+###

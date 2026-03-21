@@ -102,7 +102,11 @@ docker compose ps
      "ServiceBus__AdministrationConnectionString": "Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
      "ServiceBus__TopicName": "order-events",
      "ServiceBus__EmailSubscriptionName": "email-worker",
-     "ServiceBus__AnalyticsSubscriptionName": "analytics-worker"
+     "ServiceBus__AnalyticsSubscriptionName": "analytics-worker",
+     "ServiceBus__QrSubscriptionName": "qr-worker",
+     "TicketStorage__AuthMode": "Emulator",
+     "TicketStorage__ConnectionString": "UseDevelopmentStorage=true",
+     "TicketStorage__Containers__tickets": "tickets"
   }
 }
 ```
@@ -165,7 +169,19 @@ docker compose ps
    > The storage account name is auto-generated. Find it with:
    > `az storage account list -g rg-ticketflow-dev --query "[0].name" -o tsv`
 
-4. Start the Functions host and verify as above.
+5. Ensure `local.settings.json` contains Ticket Storage cloud-local settings:
+
+   ```json
+   {
+     "Values": {
+       "TicketStorage__AuthMode": "AzureCli",
+       "TicketStorage__AccountName": "<storage-account-name>",
+       "TicketStorage__Containers__tickets": "tickets"
+     }
+   }
+   ```
+
+6. Start the Functions host and verify as above.
 
 ### Settings files
 

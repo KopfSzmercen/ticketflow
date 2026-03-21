@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TicketFlow.Infrastructure.BlobStorage;
 using TicketFlow.Infrastructure.CosmosDb;
 using TicketFlow.Infrastructure.ServiceBus;
 using Xunit;
@@ -25,7 +26,12 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
 
     private readonly IContainer _azuriteContainer =
         new ContainerBuilder("mcr.microsoft.com/azure-storage/azurite:latest")
-            .WithCommand("azurite", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0")
+            .WithCommand(
+                "azurite",
+                "--skipApiVersionCheck",
+                "--blobHost", "0.0.0.0",
+                "--queueHost", "0.0.0.0",
+                "--tableHost", "0.0.0.0")
             .WithPortBinding(10000, true)
             .WithPortBinding(10001, true)
             .WithPortBinding(10002, true)
@@ -84,7 +90,8 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
                         "Endpoint=sb://127.0.0.1:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
                     [$"{ServiceBusOptions.SectionName}:TopicName"] = "order-events",
                     [$"{ServiceBusOptions.SectionName}:EmailSubscriptionName"] = "email-worker",
-                    [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker"
+                    [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker",
+                    [$"{ServiceBusOptions.SectionName}:QrSubscriptionName"] = "qr-worker"
                 });
             })
             .ConfigureServices((_, services) => services.AddCosmosDbModule())
@@ -165,6 +172,9 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
                 ["AzureWebJobsStorage"] = azuriteConnectionString,
                 ["CosmosDb__AuthMode"] = nameof(CosmosDbAuthMode.Emulator),
                 ["CosmosDb__ConnectionString"] = cosmosConnectionString,
+                ["TicketStorage__AuthMode"] = nameof(TicketStorageAuthMode.Emulator),
+                ["TicketStorage__ConnectionString"] = azuriteConnectionString,
+                ["TicketStorage__Containers__tickets"] = "tickets",
                 ["AzureFunctionsJobHost__extensions__durableTask__hubName"] = $"tf{Guid.NewGuid().ToString("N")[..20]}",
                 ["ServiceBus"] =
                     "Endpoint=sb://127.0.0.1:5672/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
@@ -177,7 +187,8 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
                     "Endpoint=sb://127.0.0.1:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
                 [$"{ServiceBusOptions.SectionName}:TopicName"] = "order-events",
                 [$"{ServiceBusOptions.SectionName}:EmailSubscriptionName"] = "email-worker",
-                [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker"
+                [$"{ServiceBusOptions.SectionName}:AnalyticsSubscriptionName"] = "analytics-worker",
+                [$"{ServiceBusOptions.SectionName}:QrSubscriptionName"] = "qr-worker"
             }
         };
 

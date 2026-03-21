@@ -23,4 +23,6 @@ public sealed class ServiceBusOptions
     public string EmailSubscriptionName { get; init; } = "email-worker";
 
     public string AnalyticsSubscriptionName { get; init; } = "analytics-worker";
+
+    public string QrSubscriptionName { get; init; } = "qr-worker";
 }

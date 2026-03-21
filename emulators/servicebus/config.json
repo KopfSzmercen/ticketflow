@@ -12,6 +12,9 @@
               },
               {
                 "Name": "analytics-worker"
+              },
+              {
+                "Name": "qr-worker"
               }
             ]
           }

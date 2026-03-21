@@ -18,6 +18,9 @@ param serviceBusEmailWorkerSubscriptionName string
 @description('Subscription name for analytics worker.')
 param serviceBusAnalyticsWorkerSubscriptionName string
 
+@description('Subscription name for QR worker.')
+param serviceBusQrWorkerSubscriptionName string
+
 var resourceGroupName = 'rg-${appName}-${environment}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
@@ -52,6 +55,7 @@ module serviceBus './modules/serviceBus.bicep' = {
     orderEventsTopicName: serviceBusOrderEventsTopicName
     emailWorkerSubscriptionName: serviceBusEmailWorkerSubscriptionName
     analyticsWorkerSubscriptionName: serviceBusAnalyticsWorkerSubscriptionName
+    qrWorkerSubscriptionName: serviceBusQrWorkerSubscriptionName
   }
 }
 
@@ -68,6 +72,7 @@ module functions './modules/functions.bicep' = {
     serviceBusOrderEventsTopicName: serviceBus.outputs.topicName
     serviceBusEmailWorkerSubscriptionName: serviceBus.outputs.emailSubscriptionName
     serviceBusAnalyticsWorkerSubscriptionName: serviceBus.outputs.analyticsSubscriptionName
+    serviceBusQrWorkerSubscriptionName: serviceBus.outputs.qrSubscriptionName
   }
 }
 

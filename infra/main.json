@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "8958504767101515149"
+      "templateHash": "5723685430496103434"
     }
   },
   "parameters": {
@@ -85,7 +85,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "13592650482257581255"
+              "templateHash": "11429047246822440688"
             }
           },
           "parameters": {
@@ -141,6 +141,17 @@
               "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
               ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/default/tickets', variables('storageAccountName'))]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -157,13 +168,18 @@
                 "description": "Primary blob service endpoint URL for the storage account."
               },
               "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.blob]"
+            },
+            "ticketsContainerName": {
+              "type": "string",
+              "metadata": {
+                "description": "Blob container name used for generated ticket artifacts."
+              },
+              "value": "tickets"
             }
           }
         }
       },
-      "dependsOn": [
-        "resourceGroup"
-      ]
+      "dependsOn": ["resourceGroup"]
     },
     "cosmos": {
       "type": "Microsoft.Resources/deployments",
@@ -270,9 +286,7 @@
                 "resource": {
                   "id": "events",
                   "partitionKey": {
-                    "paths": [
-                      "/id"
-                    ],
+                    "paths": ["/id"],
                     "kind": "Hash"
                   }
                 }
@@ -289,9 +303,7 @@
                 "resource": {
                   "id": "orders",
                   "partitionKey": {
-                    "paths": [
-                      "/id"
-                    ],
+                    "paths": ["/id"],
                     "kind": "Hash"
                   }
                 }
@@ -319,9 +331,7 @@
           }
         }
       },
-      "dependsOn": [
-        "resourceGroup"
-      ]
+      "dependsOn": ["resourceGroup"]
     },
     "serviceBus": {
       "type": "Microsoft.Resources/deployments",
@@ -477,9 +487,7 @@
           }
         }
       },
-      "dependsOn": [
-        "resourceGroup"
-      ]
+      "dependsOn": ["resourceGroup"]
     },
     "functions": {
       "type": "Microsoft.Resources/deployments",
@@ -530,7 +538,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "13457370787298774021"
+              "templateHash": "15492618289485608752"
             }
           },
           "parameters": {
@@ -691,6 +699,18 @@
                     {
                       "name": "ServiceBus__AnalyticsSubscriptionName",
                       "value": "[parameters('serviceBusAnalyticsWorkerSubscriptionName')]"
+                    },
+                    {
+                      "name": "TicketStorage__AuthMode",
+                      "value": "ManagedIdentity"
+                    },
+                    {
+                      "name": "TicketStorage__AccountName",
+                      "value": "[parameters('storageAccountName')]"
+                    },
+                    {
+                      "name": "TicketStorage__Containers__tickets",
+                      "value": "tickets"
                     }
                   ]
                 }
@@ -718,12 +738,7 @@
           }
         }
       },
-      "dependsOn": [
-        "cosmos",
-        "resourceGroup",
-        "serviceBus",
-        "storage"
-      ]
+      "dependsOn": ["cosmos", "resourceGroup", "serviceBus", "storage"]
     },
     "roleAssignments": {
       "type": "Microsoft.Resources/deployments",
