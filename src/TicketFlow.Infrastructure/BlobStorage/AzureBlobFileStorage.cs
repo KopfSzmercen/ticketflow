@@ -111,8 +111,9 @@ public sealed class AzureBlobFileStorage(
 
         var blobClient = GetBlobClient(containerAlias, blobName);
 
-        var startsOn = DateTimeOffset.UtcNow.Subtract(SasClockSkew);
-        var expiresOn = startsOn.Add(ttl);
+        var now = DateTimeOffset.UtcNow;
+        var startsOn = now.Subtract(SasClockSkew);
+        var expiresOn = now.Add(ttl);
 
         return new BlobSasBuilder
         {
