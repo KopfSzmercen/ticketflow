@@ -13,6 +13,7 @@
     "ServiceBus__QrSubscriptionName": "qr-worker",
     "TicketStorage__AuthMode": "AzureCli",
     "TicketStorage__AccountName": "yourstorageaccountname",
-    "TicketStorage__Containers__tickets": "tickets"
+    "TicketStorage__Containers__tickets": "tickets",
+    "Waitlist__OfferDurationInMinutes": 15
   }
 }

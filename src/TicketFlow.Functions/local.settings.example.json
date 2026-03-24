@@ -15,6 +15,7 @@
     "ServiceBus__QrSubscriptionName": "qr-worker",
     "TicketStorage__AuthMode": "Emulator",
     "TicketStorage__ConnectionString": "UseDevelopmentStorage=true",
-    "TicketStorage__Containers__tickets": "tickets"
+    "TicketStorage__Containers__tickets": "tickets",
+    "Waitlist__OfferDurationInMinutes": 15
   }
 }

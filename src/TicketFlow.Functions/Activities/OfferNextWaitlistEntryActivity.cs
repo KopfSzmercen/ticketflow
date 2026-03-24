@@ -15,7 +15,8 @@ public sealed class OfferNextWaitlistEntryActivity(
         var nextEntry = await waitlistOfferCoordinator.OfferNextWaitingEntryAsync(
             input.EventId,
             input.OfferDurationInMinutes,
-            now
+            now,
+            true
         );
 
         if (nextEntry is null)

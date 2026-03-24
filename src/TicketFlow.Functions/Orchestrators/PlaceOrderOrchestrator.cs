@@ -1,7 +1,9 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
+using Microsoft.Extensions.Options;
 using TicketFlow.Core.Models;
 using TicketFlow.Functions.Activities;
+using TicketFlow.Functions.Waitlist;
 
 namespace TicketFlow.Functions.Orchestrators;
 
@@ -13,12 +15,12 @@ public sealed record PlaceOrderInput(string EventId, bool SimulatePaymentSuccess
 ///     so <see cref="TaskOrchestrationContext.InstanceId" /> can be used as the order
 ///     identifier in every activity call.
 /// </summary>
-public static class PlaceOrderOrchestrator
+public class PlaceOrderOrchestrator(IOptions<WaitlistOptions> waitlistOptions)
 {
-    private const int WaitlistOfferDurationInMinutes = 15;
+    private readonly int _offerDurationInMinutes = waitlistOptions.Value.OfferDurationInMinutes;
 
     [Function(nameof(PlaceOrderOrchestrator))]
-    public static async Task RunOrchestrator(
+    public async Task RunOrchestrator(
         [OrchestrationTrigger] TaskOrchestrationContext context
     )
     {
@@ -31,7 +33,7 @@ public static class PlaceOrderOrchestrator
             await OrchestratePayNowProcess(context, input);
     }
 
-    private static async Task OrchestratePayNowProcess(
+    private async Task OrchestratePayNowProcess(
         TaskOrchestrationContext context,
         PlaceOrderInput input
     )
@@ -81,9 +83,9 @@ public static class PlaceOrderOrchestrator
                 new ReleaseTicketActivity.Input(orderId, input.EventId)
             );
 
-            _ = await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
+            await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
                 nameof(OfferNextWaitlistEntryActivity),
-                new OfferNextWaitlistEntryActivity.Input(input.EventId, WaitlistOfferDurationInMinutes)
+                new OfferNextWaitlistEntryActivity.Input(input.EventId, _offerDurationInMinutes)
             );
 
             await context.CallActivityAsync(
@@ -92,7 +94,7 @@ public static class PlaceOrderOrchestrator
         }
     }
 
-    private static async Task OrchestratePayLaterProcess(TaskOrchestrationContext context, PlaceOrderInput input)
+    private async Task OrchestratePayLaterProcess(TaskOrchestrationContext context, PlaceOrderInput input)
     {
         var orderId = context.InstanceId;
 
@@ -144,9 +146,9 @@ public static class PlaceOrderOrchestrator
             new ReleaseTicketActivity.Input(orderId, input.EventId)
         );
 
-        _ = await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
+        await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
             nameof(OfferNextWaitlistEntryActivity),
-            new OfferNextWaitlistEntryActivity.Input(input.EventId, WaitlistOfferDurationInMinutes)
+            new OfferNextWaitlistEntryActivity.Input(input.EventId, _offerDurationInMinutes)
         );
 
         await context.CallActivityAsync(
