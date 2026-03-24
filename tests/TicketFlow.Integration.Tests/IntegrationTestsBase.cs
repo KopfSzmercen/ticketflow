@@ -38,6 +38,9 @@ public class IntegrationTestsBase : IAsyncLifetime
         var allOrders = await dbContext.Orders.ToListAsync();
         dbContext.Orders.RemoveRange(allOrders);
 
+        var allWaitlistEntries = await dbContext.WaitlistEntries.ToListAsync();
+        dbContext.WaitlistEntries.RemoveRange(allWaitlistEntries);
+
         await dbContext.SaveChangesAsync();
     }
 }

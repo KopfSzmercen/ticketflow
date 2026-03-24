@@ -9,6 +9,8 @@ public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) 
 
     public DbSet<Order> Orders => Set<Order>();
 
+    public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<TicketEvent>(entity =>
@@ -38,6 +40,19 @@ public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) 
                 .HasConversion<string>();
 
             entity.Property(o => o.ETag)
+                .IsETagConcurrency();
+        });
+
+        modelBuilder.Entity<WaitlistEntry>(entity =>
+        {
+            entity.ToContainer("waitlist");
+            entity.HasKey(w => w.Id);
+            entity.HasPartitionKey(w => w.EventId);
+
+            entity.Property(w => w.Status)
+                .HasConversion<string>();
+
+            entity.Property(w => w.ETag)
                 .IsETagConcurrency();
         });
     }
