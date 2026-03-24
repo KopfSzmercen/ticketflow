@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TicketFlow.Core.Models;
 using TicketFlow.Functions.DTO;
 using TicketFlow.Functions.Waitlist;
@@ -11,9 +12,10 @@ namespace TicketFlow.Functions.Http;
 
 public sealed class ClaimWaitlistOfferFunction(
     TicketFlowDbContext dbContext,
-    IWaitlistOfferCoordinator waitlistOfferCoordinator)
+    IWaitlistOfferCoordinator waitlistOfferCoordinator,
+    IOptions<WaitlistOptions> waitlistOptions)
 {
-    private const int WaitlistOfferDurationInMinutes = 15;
+    private readonly int _offerDurationInMinutes = waitlistOptions.Value.OfferDurationInMinutes;
 
     [Function("ClaimWaitlistOffer")]
     public async Task<IResult> Run(
@@ -72,9 +74,9 @@ public sealed class ClaimWaitlistOfferFunction(
             entry.Status = WaitlistStatus.OfferDeclined;
             entry.UpdatedAt = now;
 
-            _ = await waitlistOfferCoordinator.OfferNextWaitingEntryAsync(
+            await waitlistOfferCoordinator.OfferNextWaitingEntryAsync(
                 entry.EventId,
-                WaitlistOfferDurationInMinutes,
+                _offerDurationInMinutes,
                 now,
                 false
             );

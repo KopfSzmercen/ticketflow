@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Shouldly;
 using TicketFlow.Core.Models;
 using TicketFlow.Functions.DTO;
@@ -49,7 +50,11 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
         await dbContext.WaitlistEntries.AddAsync(offeredEntry);
         await dbContext.SaveChangesAsync();
 
-        var function = new ClaimWaitlistOfferFunction(dbContext, new WaitlistOfferCoordinator(dbContext));
+        var function = new ClaimWaitlistOfferFunction(
+            dbContext, 
+            new WaitlistOfferCoordinator(dbContext),
+            Options.Create(new WaitlistOptions())
+        );
         var request = new ClaimWaitlistOfferFunction.Request("accept");
 
         var httpContext = new DefaultHttpContext
@@ -124,7 +129,11 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
         await dbContext.WaitlistEntries.AddRangeAsync(offeredEntry, nextWaitingEntry);
         await dbContext.SaveChangesAsync();
 
-        var function = new ClaimWaitlistOfferFunction(dbContext, new WaitlistOfferCoordinator(dbContext));
+        var function = new ClaimWaitlistOfferFunction(
+            dbContext, 
+            new WaitlistOfferCoordinator(dbContext),
+            Options.Create(new WaitlistOptions())
+        );
         var request = new ClaimWaitlistOfferFunction.Request("reject");
 
         var httpContext = new DefaultHttpContext

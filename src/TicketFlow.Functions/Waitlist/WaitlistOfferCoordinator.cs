@@ -10,7 +10,7 @@ public interface IWaitlistOfferCoordinator
         string eventId,
         int offerDurationInMinutes,
         DateTimeOffset now,
-        bool saveChanges = true
+        bool saveChanges
     );
 }
 

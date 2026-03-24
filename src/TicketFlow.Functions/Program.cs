@@ -14,6 +14,7 @@ builder.ConfigureFunctionsWebApplication();
 builder.Services.AddCosmosDbModule();
 builder.Services.AddServiceBusModule();
 builder.Services.AddBlobStorageModule();
+builder.Services.AddOptions<WaitlistOptions>().BindConfiguration(WaitlistOptions.SectionName);
 builder.Services.AddSingleton<IQrCodeGenerator, QrCodeGenerator>();
 builder.Services.AddSingleton<IOrderCompletedEventPublisher, ServiceBusOrderCompletedEventPublisher>();
 builder.Services.AddScoped<IWaitlistOfferCoordinator, WaitlistOfferCoordinator>();
