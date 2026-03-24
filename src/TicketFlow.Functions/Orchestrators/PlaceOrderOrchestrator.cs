@@ -15,6 +15,8 @@ public sealed record PlaceOrderInput(string EventId, bool SimulatePaymentSuccess
 /// </summary>
 public static class PlaceOrderOrchestrator
 {
+    private const int WaitlistOfferDurationInMinutes = 15;
+
     [Function(nameof(PlaceOrderOrchestrator))]
     public static async Task RunOrchestrator(
         [OrchestrationTrigger] TaskOrchestrationContext context
@@ -79,6 +81,11 @@ public static class PlaceOrderOrchestrator
                 new ReleaseTicketActivity.Input(orderId, input.EventId)
             );
 
+            _ = await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
+                nameof(OfferNextWaitlistEntryActivity),
+                new OfferNextWaitlistEntryActivity.Input(input.EventId, WaitlistOfferDurationInMinutes)
+            );
+
             await context.CallActivityAsync(
                 nameof(UpdateOrderStatusActivity),
                 new UpdateOrderStatusActivity.Input(orderId, OrderStatus.Failed, "Payment was declined."));
@@ -135,6 +142,11 @@ public static class PlaceOrderOrchestrator
         await context.CallActivityAsync(
             nameof(ReleaseTicketActivity),
             new ReleaseTicketActivity.Input(orderId, input.EventId)
+        );
+
+        _ = await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
+            nameof(OfferNextWaitlistEntryActivity),
+            new OfferNextWaitlistEntryActivity.Input(input.EventId, WaitlistOfferDurationInMinutes)
         );
 
         await context.CallActivityAsync(

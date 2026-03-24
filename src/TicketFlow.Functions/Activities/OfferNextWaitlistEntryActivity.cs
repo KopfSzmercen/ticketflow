@@ -1,0 +1,46 @@
+using Microsoft.Azure.Functions.Worker;
+using TicketFlow.Functions.Waitlist;
+
+namespace TicketFlow.Functions.Activities;
+
+public sealed class OfferNextWaitlistEntryActivity(
+    IWaitlistOfferCoordinator waitlistOfferCoordinator)
+{
+    [Function(nameof(OfferNextWaitlistEntryActivity))]
+    public async Task<Result?> RunActivity(
+        [ActivityTrigger] Input input,
+        FunctionContext executionContext)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var nextEntry = await waitlistOfferCoordinator.OfferNextWaitingEntryAsync(
+            input.EventId,
+            input.OfferDurationInMinutes,
+            now
+        );
+
+        if (nextEntry is null)
+            return null;
+
+        return new Result(
+            nextEntry.Id,
+            nextEntry.EventId,
+            nextEntry.AttendeeId,
+            nextEntry.AttendeeContact,
+            nextEntry.OfferInstanceId!,
+            nextEntry.OfferedAt!.Value,
+            nextEntry.OfferExpiresAt!.Value
+        );
+    }
+
+    public sealed record Input(string EventId, int OfferDurationInMinutes);
+
+    public sealed record Result(
+        string WaitlistEntryId,
+        string EventId,
+        string AttendeeId,
+        string AttendeeContact,
+        string OfferInstanceId,
+        DateTimeOffset OfferedAt,
+        DateTimeOffset OfferExpiresAt
+    );
+}
