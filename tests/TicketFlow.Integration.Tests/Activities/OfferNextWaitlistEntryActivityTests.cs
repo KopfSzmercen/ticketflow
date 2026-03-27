@@ -68,6 +68,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             var activity = new OfferNextWaitlistEntryActivity(new WaitlistOfferCoordinator(activityDbContext));
             result = await activity.RunActivity(
                 new OfferNextWaitlistEntryActivity.Input(eventId, OfferDurationInMinutes: 15),
+                new NoOpDurableTaskClient(),
                 null!
             );
         }
@@ -150,6 +151,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             var activity = new OfferNextWaitlistEntryActivity(new WaitlistOfferCoordinator(activityDbContext));
             result = await activity.RunActivity(
                 new OfferNextWaitlistEntryActivity.Input(eventId, OfferDurationInMinutes: 15),
+                new NoOpDurableTaskClient(),
                 null!
             );
         }

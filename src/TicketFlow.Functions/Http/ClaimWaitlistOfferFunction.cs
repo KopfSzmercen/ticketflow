@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.DurableTask.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TicketFlow.Core.Models;
@@ -12,7 +13,6 @@ namespace TicketFlow.Functions.Http;
 
 public sealed class ClaimWaitlistOfferFunction(
     TicketFlowDbContext dbContext,
-    IWaitlistOfferCoordinator waitlistOfferCoordinator,
     IOptions<WaitlistOptions> waitlistOptions)
 {
     private readonly int _offerDurationInMinutes = waitlistOptions.Value.OfferDurationInMinutes;
@@ -21,7 +21,8 @@ public sealed class ClaimWaitlistOfferFunction(
     public async Task<IResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orders/claim/{instanceId}")] [FromBody]
         Request request,
-        string instanceId
+        string instanceId,
+        [DurableClient] DurableTaskClient durableTaskClient
     )
     {
         if (!TryParseDecision(request.Decision, out var decision))
@@ -52,10 +53,6 @@ public sealed class ClaimWaitlistOfferFunction(
 
         if (entry.OfferExpiresAt is not null && entry.OfferExpiresAt <= now)
         {
-            entry.Status = WaitlistStatus.OfferExpired;
-            entry.UpdatedAt = now;
-            await dbContext.SaveChangesAsync();
-
             return Results.Conflict(new
             {
                 error = "waitlist_offer_expired",
@@ -63,55 +60,56 @@ public sealed class ClaimWaitlistOfferFunction(
             });
         }
 
-        if (decision == ClaimDecision.Accept)
+        try
         {
-            entry.Status = WaitlistStatus.Claimed;
-            entry.ClaimedAt = now;
-            entry.UpdatedAt = now;
-        }
-        else
-        {
-            entry.Status = WaitlistStatus.OfferDeclined;
-            entry.UpdatedAt = now;
-
-            await waitlistOfferCoordinator.OfferNextWaitingEntryAsync(
-                entry.EventId,
-                _offerDurationInMinutes,
-                now,
-                false
+            await durableTaskClient.RaiseEventAsync(
+                instanceId,
+                WaitlistOfferDecisionContract.EventName,
+                decision.ToEventPayload()
             );
         }
+        catch (Exception ex) when (IsOrchestrationNotFound(ex))
+        {
+            return Results.NotFound(new
+            {
+                error = "waitlist_offer_orchestration_not_found",
+                message = $"No orchestration instance exists for '{instanceId}'."
+            });
+        }
+        catch
+        {
+            return Results.Json(new
+            {
+                error = "waitlist_offer_orchestration_unavailable",
+                message = "Could not process this decision because orchestration is currently unavailable. Please retry."
+            }, statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
 
-        await dbContext.SaveChangesAsync();
-
+        // Note: the orchestrator now handles updating the database asynchronously
         return Results.Accepted(
             $"/orders/claim/{instanceId}",
-            WaitlistEntryResponse.FromWaitlistEntry(entry)
+            new { message = "Decision accepted and is being processed." }
         );
     }
 
-    private static bool TryParseDecision(string? decision, out ClaimDecision parsedDecision)
+    private static bool TryParseDecision(string? decision, out WaitlistOfferDecision parsedDecision)
+        => WaitlistOfferDecisionContract.TryParse(decision, out parsedDecision);
+
+    private static bool IsOrchestrationNotFound(Exception exception)
     {
-        if (string.Equals(decision, "accept", StringComparison.OrdinalIgnoreCase))
+        for (var current = exception; current is not null; current = current.InnerException)
         {
-            parsedDecision = ClaimDecision.Accept;
-            return true;
+            var message = current.Message;
+
+            if (message.Contains("not found", StringComparison.OrdinalIgnoreCase) &&
+                (message.Contains("instance", StringComparison.OrdinalIgnoreCase) ||
+                 message.Contains("orchestration", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
         }
 
-        if (string.Equals(decision, "reject", StringComparison.OrdinalIgnoreCase))
-        {
-            parsedDecision = ClaimDecision.Reject;
-            return true;
-        }
-
-        parsedDecision = default;
         return false;
-    }
-
-    private enum ClaimDecision
-    {
-        Accept,
-        Reject
     }
 
     public sealed record Request(string Decision);

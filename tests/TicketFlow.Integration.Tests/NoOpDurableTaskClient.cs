@@ -10,6 +10,9 @@ namespace TicketFlow.Integration.Tests;
 /// </summary>
 internal sealed class NoOpDurableTaskClient() : DurableTaskClient("test")
 {
+    public List<RaiseEventCall> RaiseEventCalls { get; } = [];
+    public Exception? RaiseEventExceptionToThrow { get; set; }
+
     public override Task<string> ScheduleNewOrchestrationInstanceAsync(
         TaskName orchestratorName,
         object? input,
@@ -34,7 +37,13 @@ internal sealed class NoOpDurableTaskClient() : DurableTaskClient("test")
         string eventName,
         object? eventPayload,
         CancellationToken cancellation)
-        => Task.CompletedTask;
+    {
+        if (RaiseEventExceptionToThrow is not null)
+            throw RaiseEventExceptionToThrow;
+
+        RaiseEventCalls.Add(new RaiseEventCall(instanceId, eventName, eventPayload));
+        return Task.CompletedTask;
+    }
 
     public override Task TerminateInstanceAsync(
         string instanceId,
@@ -84,5 +93,7 @@ internal sealed class NoOpDurableTaskClient() : DurableTaskClient("test")
 
     public override ValueTask DisposeAsync()
         => ValueTask.CompletedTask;
+
+    public sealed record RaiseEventCall(string InstanceId, string EventName, object? EventPayload);
 }
 

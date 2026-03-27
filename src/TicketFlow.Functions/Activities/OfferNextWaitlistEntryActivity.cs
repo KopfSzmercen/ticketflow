@@ -1,4 +1,5 @@
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask.Client;
 using TicketFlow.Functions.Waitlist;
 
 namespace TicketFlow.Functions.Activities;
@@ -9,6 +10,7 @@ public sealed class OfferNextWaitlistEntryActivity(
     [Function(nameof(OfferNextWaitlistEntryActivity))]
     public async Task<Result?> RunActivity(
         [ActivityTrigger] Input input,
+        [DurableClient] DurableTaskClient client,
         FunctionContext executionContext)
     {
         var now = DateTimeOffset.UtcNow;
@@ -16,7 +18,8 @@ public sealed class OfferNextWaitlistEntryActivity(
             input.EventId,
             input.OfferDurationInMinutes,
             now,
-            true
+            true,
+            client
         );
 
         if (nextEntry is null)

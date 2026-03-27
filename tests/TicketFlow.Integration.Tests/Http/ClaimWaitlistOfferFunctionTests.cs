@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Shouldly;
 using TicketFlow.Core.Models;
-using TicketFlow.Functions.DTO;
 using TicketFlow.Functions.Http;
 using TicketFlow.Functions.Waitlist;
 using TicketFlow.Infrastructure.CosmosDb;
@@ -24,7 +23,7 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
     };
 
     [Fact]
-    public async Task Run_ShouldAcceptOfferAndMarkWaitlistEntryAsClaimed()
+    public async Task Run_ShouldRaiseEventAndReturnAccepted()
     {
         // Arrange
         await using var scope = Fixture.Services.CreateAsyncScope();
@@ -50,12 +49,13 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
         await dbContext.WaitlistEntries.AddAsync(offeredEntry);
         await dbContext.SaveChangesAsync();
 
+        var durableClient = new NoOpDurableTaskClient();
+
         var function = new ClaimWaitlistOfferFunction(
             dbContext, 
-            new WaitlistOfferCoordinator(dbContext),
             Options.Create(new WaitlistOptions())
         );
-        var request = new ClaimWaitlistOfferFunction.Request("accept");
+        var request = new ClaimWaitlistOfferFunction.Request(WaitlistOfferDecisionContract.AcceptValue);
 
         var httpContext = new DefaultHttpContext
         {
@@ -64,7 +64,7 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
         };
 
         // Act
-        var result = await function.Run(request, offerInstanceId);
+        var result = await function.Run(request, offerInstanceId, durableClient);
         await result.ExecuteAsync(httpContext);
 
         // Assert: response contract
@@ -72,28 +72,19 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
 
         httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
         var responseJson = await new StreamReader(httpContext.Response.Body).ReadToEndAsync();
-        var response = JsonSerializer.Deserialize<WaitlistEntryResponse>(responseJson, JsonOptions);
+        
+        responseJson.ShouldContain("Decision accepted and is being processed");
 
-        response.ShouldNotBeNull();
-        response.Id.ShouldBe(offeredEntry.Id);
-        response.Status.ShouldBe(nameof(WaitlistStatus.Claimed));
-        response.ClaimedAt.ShouldNotBeNull();
-
-        // Assert: persisted state
-        await using var verifyScope = Fixture.Services.CreateAsyncScope();
-        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
-
-        var persisted = await verifyContext.WaitlistEntries
-            .WithPartitionKey(eventId)
-            .SingleAsync(w => w.Id == offeredEntry.Id);
-
-        persisted.Status.ShouldBe(WaitlistStatus.Claimed);
-        persisted.ClaimedAt.ShouldNotBeNull();
-        persisted.UpdatedAt.ShouldNotBeNull();
+        // Assert: orchestration event raised with expected payload
+        durableClient.RaiseEventCalls.Count.ShouldBe(1);
+        var raisedEvent = durableClient.RaiseEventCalls[0];
+        raisedEvent.InstanceId.ShouldBe(offerInstanceId);
+        raisedEvent.EventName.ShouldBe(WaitlistOfferDecisionContract.EventName);
+        raisedEvent.EventPayload.ShouldBe(WaitlistOfferDecisionContract.AcceptValue);
     }
 
     [Fact]
-    public async Task Run_ShouldRejectOfferAndMarkWaitlistEntryAsDeclined()
+    public async Task Run_ShouldReturnNotFound_WhenOrchestrationInstanceDoesNotExist()
     {
         // Arrange
         await using var scope = Fixture.Services.CreateAsyncScope();
@@ -107,34 +98,28 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
         {
             Id = Guid.NewGuid().ToString("N"),
             EventId = eventId,
-            AttendeeId = "attendee-reject",
-            AttendeeContact = "reject@example.com",
+            AttendeeId = "attendee-missing",
+            AttendeeContact = "missing@example.com",
             Status = WaitlistStatus.Offered,
             EnqueuedAt = now.AddMinutes(-10),
-            OfferedAt = now.AddMinutes(-1),
+            OfferedAt = now.AddMinutes(-2),
             OfferExpiresAt = now.AddMinutes(10),
             OfferInstanceId = offerInstanceId
         };
 
-        var nextWaitingEntry = new WaitlistEntry
-        {
-            Id = Guid.NewGuid().ToString("N"),
-            EventId = eventId,
-            AttendeeId = "attendee-next",
-            AttendeeContact = "next@example.com",
-            Status = WaitlistStatus.Waiting,
-            EnqueuedAt = now.AddMinutes(-5)
-        };
-
-        await dbContext.WaitlistEntries.AddRangeAsync(offeredEntry, nextWaitingEntry);
+        await dbContext.WaitlistEntries.AddAsync(offeredEntry);
         await dbContext.SaveChangesAsync();
 
+        var durableClient = new NoOpDurableTaskClient
+        {
+            RaiseEventExceptionToThrow = new InvalidOperationException($"Orchestration instance '{offerInstanceId}' was not found.")
+        };
+
         var function = new ClaimWaitlistOfferFunction(
-            dbContext, 
-            new WaitlistOfferCoordinator(dbContext),
+            dbContext,
             Options.Create(new WaitlistOptions())
         );
-        var request = new ClaimWaitlistOfferFunction.Request("reject");
+        var request = new ClaimWaitlistOfferFunction.Request(WaitlistOfferDecisionContract.AcceptValue);
 
         var httpContext = new DefaultHttpContext
         {
@@ -143,40 +128,72 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
         };
 
         // Act
-        var result = await function.Run(request, offerInstanceId);
+        var result = await function.Run(request, offerInstanceId, durableClient);
         await result.ExecuteAsync(httpContext);
 
-        // Assert: response contract
-        httpContext.Response.StatusCode.ShouldBe(StatusCodes.Status202Accepted);
+        // Assert
+        httpContext.Response.StatusCode.ShouldBe(StatusCodes.Status404NotFound);
 
         httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
         var responseJson = await new StreamReader(httpContext.Response.Body).ReadToEndAsync();
-        var response = JsonSerializer.Deserialize<WaitlistEntryResponse>(responseJson, JsonOptions);
 
-        response.ShouldNotBeNull();
-        response.Id.ShouldBe(offeredEntry.Id);
-        response.Status.ShouldBe(nameof(WaitlistStatus.OfferDeclined));
-        response.ClaimedAt.ShouldBeNull();
+        responseJson.ShouldContain("waitlist_offer_orchestration_not_found");
+    }
 
-        // Assert: persisted state
-        await using var verifyScope = Fixture.Services.CreateAsyncScope();
-        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
+    [Fact]
+    public async Task Run_ShouldReturnServiceUnavailable_WhenRaiseEventFails()
+    {
+        // Arrange
+        await using var scope = Fixture.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
 
-        var persisted = await verifyContext.WaitlistEntries
-            .WithPartitionKey(eventId)
-            .SingleAsync(w => w.Id == offeredEntry.Id);
+        var eventId = Guid.NewGuid().ToString("N");
+        var now = DateTimeOffset.UtcNow;
+        var offerInstanceId = Guid.NewGuid().ToString("N");
 
-        persisted.Status.ShouldBe(WaitlistStatus.OfferDeclined);
-        persisted.ClaimedAt.ShouldBeNull();
-        persisted.UpdatedAt.ShouldNotBeNull();
+        var offeredEntry = new WaitlistEntry
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            EventId = eventId,
+            AttendeeId = "attendee-failure",
+            AttendeeContact = "failure@example.com",
+            Status = WaitlistStatus.Offered,
+            EnqueuedAt = now.AddMinutes(-10),
+            OfferedAt = now.AddMinutes(-2),
+            OfferExpiresAt = now.AddMinutes(10),
+            OfferInstanceId = offerInstanceId
+        };
 
-        var rolledOverOffer = await verifyContext.WaitlistEntries
-            .WithPartitionKey(eventId)
-            .SingleAsync(w => w.Id == nextWaitingEntry.Id);
+        await dbContext.WaitlistEntries.AddAsync(offeredEntry);
+        await dbContext.SaveChangesAsync();
 
-        rolledOverOffer.Status.ShouldBe(WaitlistStatus.Offered);
-        rolledOverOffer.OfferInstanceId.ShouldNotBeNullOrWhiteSpace();
-        rolledOverOffer.OfferedAt.ShouldNotBeNull();
-        rolledOverOffer.OfferExpiresAt.ShouldNotBeNull();
+        var durableClient = new NoOpDurableTaskClient
+        {
+            RaiseEventExceptionToThrow = new TimeoutException("Durable backend timeout while raising event.")
+        };
+
+        var function = new ClaimWaitlistOfferFunction(
+            dbContext,
+            Options.Create(new WaitlistOptions())
+        );
+        var request = new ClaimWaitlistOfferFunction.Request(WaitlistOfferDecisionContract.RejectValue);
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = scope.ServiceProvider,
+            Response = { Body = new MemoryStream() }
+        };
+
+        // Act
+        var result = await function.Run(request, offerInstanceId, durableClient);
+        await result.ExecuteAsync(httpContext);
+
+        // Assert
+        httpContext.Response.StatusCode.ShouldBe(StatusCodes.Status503ServiceUnavailable);
+
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseJson = await new StreamReader(httpContext.Response.Body).ReadToEndAsync();
+
+        responseJson.ShouldContain("waitlist_offer_orchestration_unavailable");
     }
 }
