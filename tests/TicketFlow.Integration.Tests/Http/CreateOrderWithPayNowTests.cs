@@ -152,7 +152,7 @@ public class CreateOrderWithPayNowTests(DurableFunctionsHostFixture fixture) : I
             EventId = createdEvent.Id,
             AttendeeId = "attendee-first",
             AttendeeName = "First Queue Attendee",
-            AttendeeContact = "first@example.com",
+            AttendeeEmail = "first@example.com",
             Status = WaitlistStatus.Waiting,
             EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(-20)
         };
@@ -163,7 +163,7 @@ public class CreateOrderWithPayNowTests(DurableFunctionsHostFixture fixture) : I
             EventId = createdEvent.Id,
             AttendeeId = "attendee-second",
             AttendeeName = "Second Queue Attendee",
-            AttendeeContact = "second@example.com",
+            AttendeeEmail = "second@example.com",
             Status = WaitlistStatus.Waiting,
             EnqueuedAt = DateTimeOffset.UtcNow.AddMinutes(-10)
         };

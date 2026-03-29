@@ -47,7 +47,7 @@ public sealed class CreateOrderFromWaitlistOfferActivity(
             new CreateOrderRequest(
                 input.EventId,
                 waitlistEntry.AttendeeName,
-                waitlistEntry.AttendeeContact,
+                waitlistEntry.AttendeeEmail,
                 ticketPrice,
                 input.SimulatePaymentSuccess,
                 input.OfferInstanceId

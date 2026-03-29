@@ -31,7 +31,7 @@ public sealed class OfferNextWaitlistEntryActivity(
             nextEntry.Id,
             nextEntry.EventId,
             nextEntry.AttendeeId,
-            nextEntry.AttendeeContact,
+            nextEntry.AttendeeEmail,
             nextEntry.OfferInstanceId!,
             nextEntry.OfferedAt!.Value,
             nextEntry.OfferExpiresAt!.Value
@@ -47,7 +47,7 @@ public sealed class OfferNextWaitlistEntryActivity(
         string WaitlistEntryId,
         string EventId,
         string AttendeeId,
-        string AttendeeContact,
+        string AttendeeEmail,
         string OfferInstanceId,
         DateTimeOffset OfferedAt,
         DateTimeOffset OfferExpiresAt

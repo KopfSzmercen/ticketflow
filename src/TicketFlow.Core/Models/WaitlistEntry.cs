@@ -10,7 +10,7 @@ public class WaitlistEntry
 
     public required string AttendeeName { get; set; }
 
-    public required string AttendeeContact { get; set; }
+    public required string AttendeeEmail { get; set; }
 
     public WaitlistStatus Status { get; set; } = WaitlistStatus.Waiting;
 

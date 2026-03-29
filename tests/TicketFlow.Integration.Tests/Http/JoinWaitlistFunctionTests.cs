@@ -68,7 +68,7 @@ public class JoinWaitlistFunctionTests(CosmosDbContainerFixture fixture) : Integ
         response.EventId.ShouldBe(soldOutEvent.Id);
         response.AttendeeId.ShouldBe(request.AttendeeId);
         response.AttendeeName.ShouldBe(request.AttendeeName);
-        response.AttendeeContact.ShouldBe(request.AttendeeContact);
+        response.AttendeeEmail.ShouldBe(request.AttendeeEmail);
         response.Status.ShouldBe(nameof(WaitlistStatus.Waiting));
         response.OfferInstanceId.ShouldBeNull();
         response.OfferedAt.ShouldBeNull();
@@ -88,7 +88,7 @@ public class JoinWaitlistFunctionTests(CosmosDbContainerFixture fixture) : Integ
         persisted.EventId.ShouldBe(soldOutEvent.Id);
         persisted.AttendeeId.ShouldBe(request.AttendeeId);
         persisted.AttendeeName.ShouldBe(request.AttendeeName);
-        persisted.AttendeeContact.ShouldBe(request.AttendeeContact);
+        persisted.AttendeeEmail.ShouldBe(request.AttendeeEmail);
         persisted.Status.ShouldBe(WaitlistStatus.Waiting);
     }
 

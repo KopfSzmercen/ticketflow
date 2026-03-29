@@ -39,7 +39,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             EventId = eventId,
             AttendeeId = "attendee-first",
             AttendeeName = "First Waiter",
-            AttendeeContact = "first@example.com",
+            AttendeeEmail = "first@example.com",
             Status = WaitlistStatus.Waiting,
             EnqueuedAt = now.AddMinutes(-20)
         };
@@ -50,7 +50,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             EventId = eventId,
             AttendeeId = "attendee-second",
             AttendeeName = "Second Waiter",
-            AttendeeContact = "second@example.com",
+            AttendeeEmail = "second@example.com",
             Status = WaitlistStatus.Waiting,
             EnqueuedAt = now.AddMinutes(-10)
         };
@@ -61,7 +61,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             EventId = eventId,
             AttendeeId = "attendee-offered",
             AttendeeName = "Already Offered",
-            AttendeeContact = "offered@example.com",
+            AttendeeEmail = "offered@example.com",
             Status = WaitlistStatus.Offered,
             EnqueuedAt = now.AddMinutes(-30),
             OfferedAt = now.AddMinutes(-5),
@@ -97,7 +97,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
         result.WaitlistEntryId.ShouldBe(firstWaiting.Id);
         result.EventId.ShouldBe(eventId);
         result.AttendeeId.ShouldBe(firstWaiting.AttendeeId);
-        result.AttendeeContact.ShouldBe(firstWaiting.AttendeeContact);
+        result.AttendeeEmail.ShouldBe(firstWaiting.AttendeeEmail);
         result.OfferInstanceId.ShouldNotBeNullOrWhiteSpace();
         result.OfferExpiresAt.ShouldBeGreaterThan(result.OfferedAt);
 
@@ -164,7 +164,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             EventId = eventId,
             AttendeeId = "attendee-offered",
             AttendeeName = "Already Offered",
-            AttendeeContact = "offered@example.com",
+            AttendeeEmail = "offered@example.com",
             Status = WaitlistStatus.Offered,
             EnqueuedAt = now.AddMinutes(-30),
             OfferedAt = now.AddMinutes(-10),
