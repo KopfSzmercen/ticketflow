@@ -3,7 +3,19 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "adr/**"
+      - "building-phases/**"
+      - "requests/**"
+      - ".github/skills/**"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "adr/**"
+      - "building-phases/**"
+      - "requests/**"
+      - ".github/skills/**"
   # Allow manual deploys to any environment from the Actions tab.
   workflow_dispatch:
     inputs:

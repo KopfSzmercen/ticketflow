@@ -23,3 +23,11 @@
 **Step 1: QR worker fan-out and blob persistence**: Added dedicated `qr-worker` Service Bus subscription wiring across options, local settings, and Bicep modules. Implemented `QrWorkerTrigger` that consumes `OrderCompletedEvent`, builds deterministic payload `OrderId|EventId|AttendeeEmail` (using `EventName` as the current event identifier field), generates PNG QR via `QRCoder`, and uploads to blob path `tickets/{orderId}.png` in `tickets` container. Added direct invocation integration test that asserts blob existence, PNG signature bytes, and stored `image/png` content type in Azurite-backed storage.
 
 **Step 2: Ticket retrieval endpoint**: Added `GET /orders/{orderId}/ticket` returning bounded read SAS URL for `tickets/{orderId}.png` with 404 semantics when blob is absent. Added integration tests for both happy path URI shape and missing ticket behavior.
+
+## Phase 6: Waitlist
+
+**Step 1: Waitlist entry and offer flow**: Added `WaitlistEntry` and `WaitlistStatus` to track waiting, offered, claimed, declined, and expired states. Implemented `POST /events/{eventId}/waitlist` to allow an attendee to join only when an event is sold out, validate the attendee payload, and persist the entry to Cosmos DB. Added `WaitlistOptions` so the offer window can be configured globally.
+
+**Step 2: Offer coordination and orchestration**: Added `WaitlistOfferCoordinator` plus `OfferNextWaitlistEntryActivity` to select the oldest waiting entry in an event partition, mark it as offered with a generated `OfferInstanceId`, persist the offer window, and start `WaitlistOfferOrchestrator`. The orchestrator waits for either the external claim decision or timer expiry, updates waitlist state through `WaitlistStateActivities`, and advances to the next entry when an offer is declined or expires.
+
+**Step 3: Claim endpoint and coverage**: Added `POST /orders/claim/{instanceId}` to validate that an offer is still claimable, verify the orchestration instance, and raise the durable external event for accept/reject decisions. Integration tests now cover joining a sold-out event, ordered offer selection, claim acceptance, missing orchestration handling, and durable backend failure handling. This finishes phase 6 of the project.
