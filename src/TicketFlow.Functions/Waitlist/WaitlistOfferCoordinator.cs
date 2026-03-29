@@ -13,6 +13,7 @@ public interface IWaitlistOfferCoordinator
         string eventId,
         int offerDurationInMinutes,
         DateTimeOffset now,
+        Money? offeredTicketPrice,
         bool saveChanges,
         DurableTaskClient durableTaskClient
     );
@@ -25,6 +26,7 @@ public sealed class WaitlistOfferCoordinator(
         string eventId,
         int offerDurationInMinutes,
         DateTimeOffset now,
+        Money? offeredTicketPrice,
         bool saveChanges,
         DurableTaskClient durableTaskClient)
     {
@@ -49,23 +51,41 @@ public sealed class WaitlistOfferCoordinator(
         nextEntry.OfferInstanceId = Guid.NewGuid().ToString("N");
         nextEntry.OfferedAt = now;
         nextEntry.OfferExpiresAt = now.AddMinutes(offerDurationInMinutes);
+        nextEntry.OfferedTicketPrice = offeredTicketPrice;
         nextEntry.UpdatedAt = now;
 
         if (saveChanges)
             await dbContext.SaveChangesAsync();
 
-        //Consider transactional-like behavior here: if the orchestration fails to start, the entry will be left in an offered state without an active offer orchestration. 
-        await durableTaskClient.ScheduleNewOrchestrationInstanceAsync(
-            nameof(WaitlistOfferOrchestrator),
-            new WaitlistOfferOrchestrator.Input(
-                nextEntry.Id,
-                nextEntry.EventId,
-                nextEntry.OfferInstanceId,
-                nextEntry.OfferExpiresAt.Value,
-                offerDurationInMinutes
-            ),
-            new StartOrchestrationOptions { InstanceId = nextEntry.OfferInstanceId }
-        );
+        try
+        {
+            await durableTaskClient.ScheduleNewOrchestrationInstanceAsync(
+                nameof(WaitlistOfferOrchestrator),
+                new WaitlistOfferOrchestrator.Input(
+                    nextEntry.Id,
+                    nextEntry.EventId,
+                    nextEntry.OfferInstanceId,
+                    nextEntry.OfferExpiresAt.Value,
+                    offerDurationInMinutes,
+                    nextEntry.OfferedTicketPrice
+                ),
+                new StartOrchestrationOptions { InstanceId = nextEntry.OfferInstanceId }
+            );
+        }
+        catch
+        {
+            nextEntry.Status = WaitlistStatus.Waiting;
+            nextEntry.OfferInstanceId = null;
+            nextEntry.OfferedAt = null;
+            nextEntry.OfferExpiresAt = null;
+            nextEntry.OfferedTicketPrice = null;
+            nextEntry.UpdatedAt = now;
+
+            if (saveChanges)
+                await dbContext.SaveChangesAsync();
+
+            throw;
+        }
 
         return nextEntry;
     }

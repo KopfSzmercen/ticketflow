@@ -8,7 +8,9 @@ public class WaitlistEntry
 
     public required string AttendeeId { get; set; }
 
-    public required string AttendeeContact { get; set; }
+    public required string AttendeeName { get; set; }
+
+    public required string AttendeeEmail { get; set; }
 
     public WaitlistStatus Status { get; set; } = WaitlistStatus.Waiting;
 
@@ -19,6 +21,8 @@ public class WaitlistEntry
     public DateTimeOffset? OfferedAt { get; set; }
 
     public DateTimeOffset? OfferExpiresAt { get; set; }
+
+    public Money? OfferedTicketPrice { get; set; }
 
     public DateTimeOffset? ClaimedAt { get; set; }
 

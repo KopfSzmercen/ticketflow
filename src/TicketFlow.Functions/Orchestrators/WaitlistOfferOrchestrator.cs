@@ -30,7 +30,10 @@ public sealed class WaitlistOfferOrchestrator
 
             await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
                 nameof(OfferNextWaitlistEntryActivity),
-                new OfferNextWaitlistEntryActivity.Input(input.EventId, input.OfferDurationInMinutes)
+                new OfferNextWaitlistEntryActivity.Input(
+                    input.EventId,
+                    input.OfferDurationInMinutes,
+                    input.OfferedTicketPrice)
             );
         }
         else
@@ -50,7 +53,10 @@ public sealed class WaitlistOfferOrchestrator
 
                 await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
                     nameof(OfferNextWaitlistEntryActivity),
-                    new OfferNextWaitlistEntryActivity.Input(input.EventId, input.OfferDurationInMinutes)
+                    new OfferNextWaitlistEntryActivity.Input(
+                        input.EventId,
+                        input.OfferDurationInMinutes,
+                        input.OfferedTicketPrice)
                 );
             }
             else if (decision == WaitlistOfferDecision.Accept)
@@ -60,8 +66,13 @@ public sealed class WaitlistOfferOrchestrator
                     new WaitlistStateActivities.Input(input.EventId, input.OfferInstanceId, WaitlistStatus.Claimed)
                 );
 
-                // Triggers purchase logic or PlaceOrderOrchestrator
-                // For now, simple transition
+                await context.CallActivityAsync<CreateOrderFromWaitlistOfferActivity.Result>(
+                    nameof(CreateOrderFromWaitlistOfferActivity),
+                    new CreateOrderFromWaitlistOfferActivity.Input(
+                        input.EventId,
+                        input.WaitlistEntryId,
+                        input.OfferInstanceId)
+                );
             }
         }
     }
@@ -71,5 +82,6 @@ public sealed class WaitlistOfferOrchestrator
         string EventId,
         string OfferInstanceId,
         DateTimeOffset OfferExpiresAt,
-        int OfferDurationInMinutes);
+        int OfferDurationInMinutes,
+        Money? OfferedTicketPrice = null);
 }

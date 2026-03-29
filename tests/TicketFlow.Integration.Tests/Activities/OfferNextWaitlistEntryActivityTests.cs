@@ -21,12 +21,25 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
         var eventId = Guid.NewGuid().ToString("N");
         var now = DateTimeOffset.UtcNow;
 
+        var ticketEvent = new TicketEvent
+        {
+            Id = eventId,
+            Name = "Waitlist Offer Event",
+            Venue = "Main Hall",
+            TicketPrice = new Money(49, "USD"),
+            TotalCapacity = 100,
+            AvailableTickets = 0,
+            Date = now.AddDays(14),
+            ReservationExpirationInSeconds = 20
+        };
+
         var firstWaiting = new WaitlistEntry
         {
             Id = Guid.NewGuid().ToString("N"),
             EventId = eventId,
             AttendeeId = "attendee-first",
-            AttendeeContact = "first@example.com",
+            AttendeeName = "First Waiter",
+            AttendeeEmail = "first@example.com",
             Status = WaitlistStatus.Waiting,
             EnqueuedAt = now.AddMinutes(-20)
         };
@@ -36,7 +49,8 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             Id = Guid.NewGuid().ToString("N"),
             EventId = eventId,
             AttendeeId = "attendee-second",
-            AttendeeContact = "second@example.com",
+            AttendeeName = "Second Waiter",
+            AttendeeEmail = "second@example.com",
             Status = WaitlistStatus.Waiting,
             EnqueuedAt = now.AddMinutes(-10)
         };
@@ -46,7 +60,8 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             Id = Guid.NewGuid().ToString("N"),
             EventId = eventId,
             AttendeeId = "attendee-offered",
-            AttendeeContact = "offered@example.com",
+            AttendeeName = "Already Offered",
+            AttendeeEmail = "offered@example.com",
             Status = WaitlistStatus.Offered,
             EnqueuedAt = now.AddMinutes(-30),
             OfferedAt = now.AddMinutes(-5),
@@ -57,6 +72,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
         await using (var seedScope = Fixture.Services.CreateAsyncScope())
         {
             var seedDbContext = seedScope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
+            seedDbContext.Events.Add(ticketEvent);
             seedDbContext.WaitlistEntries.AddRange(firstWaiting, secondWaiting, alreadyOffered);
             await seedDbContext.SaveChangesAsync();
         }
@@ -67,7 +83,10 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
             var activityDbContext = activityScope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
             var activity = new OfferNextWaitlistEntryActivity(new WaitlistOfferCoordinator(activityDbContext));
             result = await activity.RunActivity(
-                new OfferNextWaitlistEntryActivity.Input(eventId, OfferDurationInMinutes: 15),
+                new OfferNextWaitlistEntryActivity.Input(
+                    eventId,
+                    OfferDurationInMinutes: 15,
+                    OfferedTicketPrice: new Money(49, "USD")),
                 new NoOpDurableTaskClient(),
                 null!
             );
@@ -78,7 +97,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
         result.WaitlistEntryId.ShouldBe(firstWaiting.Id);
         result.EventId.ShouldBe(eventId);
         result.AttendeeId.ShouldBe(firstWaiting.AttendeeId);
-        result.AttendeeContact.ShouldBe(firstWaiting.AttendeeContact);
+        result.AttendeeEmail.ShouldBe(firstWaiting.AttendeeEmail);
         result.OfferInstanceId.ShouldNotBeNullOrWhiteSpace();
         result.OfferExpiresAt.ShouldBeGreaterThan(result.OfferedAt);
 
@@ -98,6 +117,9 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
         persistedFirst.OfferInstanceId.ShouldNotBeNullOrWhiteSpace();
         persistedFirst.OfferedAt.ShouldNotBeNull();
         persistedFirst.OfferExpiresAt.ShouldNotBeNull();
+        persistedFirst.OfferedTicketPrice.ShouldNotBeNull();
+        persistedFirst.OfferedTicketPrice.Amount.ShouldBe(49m);
+        persistedFirst.OfferedTicketPrice.Currency.ShouldBe("USD");
         persistedFirst.UpdatedAt.ShouldNotBeNull();
 
         var persistedSecond = await verifyDbContext.WaitlistEntries
@@ -108,6 +130,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
         persistedSecond.OfferInstanceId.ShouldBeNull();
         persistedSecond.OfferedAt.ShouldBeNull();
         persistedSecond.OfferExpiresAt.ShouldBeNull();
+        persistedSecond.OfferedTicketPrice.ShouldBeNull();
 
         var persistedOffered = await verifyDbContext.WaitlistEntries
             .WithPartitionKey(eventId)
@@ -123,12 +146,25 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
         var eventId = Guid.NewGuid().ToString("N");
         var now = DateTimeOffset.UtcNow;
 
+        var ticketEvent = new TicketEvent
+        {
+            Id = eventId,
+            Name = "Waitlist No Waiting Entries",
+            Venue = "Main Hall",
+            TicketPrice = new Money(59, "USD"),
+            TotalCapacity = 50,
+            AvailableTickets = 0,
+            Date = now.AddDays(7),
+            ReservationExpirationInSeconds = 20
+        };
+
         var alreadyOffered = new WaitlistEntry
         {
             Id = Guid.NewGuid().ToString("N"),
             EventId = eventId,
             AttendeeId = "attendee-offered",
-            AttendeeContact = "offered@example.com",
+            AttendeeName = "Already Offered",
+            AttendeeEmail = "offered@example.com",
             Status = WaitlistStatus.Offered,
             EnqueuedAt = now.AddMinutes(-30),
             OfferedAt = now.AddMinutes(-10),
@@ -139,6 +175,7 @@ public sealed class OfferNextWaitlistEntryActivityTests(CosmosDbContainerFixture
         await using (var seedScope = Fixture.Services.CreateAsyncScope())
         {
             var seedDbContext = seedScope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
+            seedDbContext.Events.Add(ticketEvent);
             seedDbContext.WaitlistEntries.Add(alreadyOffered);
             await seedDbContext.SaveChangesAsync();
         }

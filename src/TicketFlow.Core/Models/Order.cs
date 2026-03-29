@@ -12,6 +12,8 @@ public class Order
 
     public required Money TicketPrice { get; set; }
 
+    public string? WaitlistOfferInstanceId { get; set; }
+
     /// <summary>
     /// When <c>true</c> the payment activity simulates a successful payment;
     /// when <c>false</c> it simulates a declined payment.

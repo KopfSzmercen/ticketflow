@@ -3,14 +3,14 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
-using TicketFlow.Core.Models;
 using TicketFlow.Functions.DTO;
+using TicketFlow.Functions.Orders;
 using TicketFlow.Functions.Orchestrators;
-using TicketFlow.Infrastructure.CosmosDb;
+using TicketFlow.Core.Models;
 
 namespace TicketFlow.Functions.Http;
 
-public sealed class CreateOrderFunction(TicketFlowDbContext dbContext)
+public sealed class CreateOrderFunction(IOrderCreationService orderCreationService)
 {
     [Function("CreateOrder")]
     public async Task<IResult> Run(
@@ -19,33 +19,29 @@ public sealed class CreateOrderFunction(TicketFlowDbContext dbContext)
         [DurableClient] DurableTaskClient durableClient
     )
     {
-        var orderId = Guid.NewGuid().ToString();
-
-        var order = new Order
-        {
-            Id = orderId,
-            EventId = request.EventId,
-            AttendeeName = request.AttendeeName,
-            AttendeeEmail = request.AttendeeEmail,
-            TicketPrice = request.TicketPrice,
-            SimulatePaymentSuccess = request.SimulatePaymentSuccess,
-            Status = OrderStatus.Pending,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-
-        await dbContext.Orders.AddAsync(order);
-        await dbContext.SaveChangesAsync();
+        var order = await orderCreationService.CreateOrderAsync(
+            new CreateOrderRequest(
+                request.EventId,
+                request.AttendeeName,
+                request.AttendeeEmail,
+                request.TicketPrice,
+                request.SimulatePaymentSuccess
+            ));
 
         await durableClient.ScheduleNewOrchestrationInstanceAsync(
             nameof(PlaceOrderOrchestrator),
-            new PlaceOrderInput(request.EventId, request.SimulatePaymentSuccess, request.PayLater),
-            new StartOrchestrationOptions { InstanceId = orderId }
+            new PlaceOrderInput(
+                request.EventId,
+                request.SimulatePaymentSuccess,
+                request.PayLater,
+                request.TicketPrice),
+            new StartOrchestrationOptions { InstanceId = order.Id }
         );
 
         var response = OrderResponse.FromOrder(order);
 
         return Results.Accepted(
-            $"/orders/{orderId}",
+            $"/orders/{order.Id}",
             response
         );
     }

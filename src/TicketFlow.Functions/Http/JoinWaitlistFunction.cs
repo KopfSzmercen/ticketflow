@@ -21,7 +21,9 @@ public sealed class JoinWaitlistFunction(
         string eventId
     )
     {
-        if (string.IsNullOrWhiteSpace(request.AttendeeId) || string.IsNullOrWhiteSpace(request.AttendeeContact))
+        if (string.IsNullOrWhiteSpace(request.AttendeeId)
+            || string.IsNullOrWhiteSpace(request.AttendeeName)
+            || string.IsNullOrWhiteSpace(request.AttendeeEmail))
         {
             logger.LogWarning(
                 "Waitlist join rejected for event {EventId}. Missing attendee information.",
@@ -30,8 +32,8 @@ public sealed class JoinWaitlistFunction(
 
             return Results.BadRequest(new
             {
-                error = "attendee_id_and_contact_required",
-                message = "Both attendeeId and attendeeContact are required."
+                error = "attendee_info_required",
+                message = "attendeeId, attendeeName, and attendeeEmail are required."
             });
         }
 
@@ -73,7 +75,8 @@ public sealed class JoinWaitlistFunction(
             Id = Guid.NewGuid().ToString(),
             EventId = eventId,
             AttendeeId = request.AttendeeId,
-            AttendeeContact = request.AttendeeContact,
+            AttendeeName = request.AttendeeName,
+            AttendeeEmail = request.AttendeeEmail,
             Status = WaitlistStatus.Waiting,
             EnqueuedAt = DateTimeOffset.UtcNow
         };
@@ -94,5 +97,5 @@ public sealed class JoinWaitlistFunction(
         );
     }
 
-    public sealed record Request(string AttendeeId, string AttendeeContact);
+    public sealed record Request(string AttendeeId, string AttendeeName, string AttendeeEmail);
 }

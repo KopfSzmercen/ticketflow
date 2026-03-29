@@ -6,12 +6,14 @@ public sealed record WaitlistEntryResponse(
     string Id,
     string EventId,
     string AttendeeId,
-    string AttendeeContact,
+    string AttendeeName,
+    string AttendeeEmail,
     string Status,
     DateTimeOffset EnqueuedAt,
     string? OfferInstanceId,
     DateTimeOffset? OfferedAt,
     DateTimeOffset? OfferExpiresAt,
+    Money? OfferedTicketPrice,
     DateTimeOffset? ClaimedAt
 )
 {
@@ -21,12 +23,14 @@ public sealed record WaitlistEntryResponse(
             entry.Id,
             entry.EventId,
             entry.AttendeeId,
-            entry.AttendeeContact,
+            entry.AttendeeName,
+            entry.AttendeeEmail,
             entry.Status.ToString(),
             entry.EnqueuedAt,
             entry.OfferInstanceId,
             entry.OfferedAt,
             entry.OfferExpiresAt,
+            entry.OfferedTicketPrice,
             entry.ClaimedAt
         );
     }

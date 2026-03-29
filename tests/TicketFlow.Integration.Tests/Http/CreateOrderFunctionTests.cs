@@ -6,6 +6,7 @@ using Shouldly;
 using TicketFlow.Core.Models;
 using TicketFlow.Functions.DTO;
 using TicketFlow.Functions.Http;
+using TicketFlow.Functions.Orders;
 using TicketFlow.Infrastructure.CosmosDb;
 using TicketFlow.Integration.Tests.Fixtures;
 using Xunit;
@@ -44,7 +45,7 @@ public class CreateOrderFunctionTests(CosmosDbContainerFixture fixture) : Integr
         await dbContext.SaveChangesAsync();
 
         var durableClient = new NoOpDurableTaskClient();
-        var createOrderFunction = new CreateOrderFunction(dbContext);
+        var createOrderFunction = new CreateOrderFunction(new OrderCreationService(dbContext));
 
         var request = new CreateOrderFunction.Request(
             ticketEvent.Id,
@@ -114,7 +115,7 @@ public class CreateOrderFunctionTests(CosmosDbContainerFixture fixture) : Integr
         await dbContext.SaveChangesAsync();
 
         var durableClient = new NoOpDurableTaskClient();
-        var createOrderFunction = new CreateOrderFunction(dbContext);
+        var createOrderFunction = new CreateOrderFunction(new OrderCreationService(dbContext));
 
         var request = new CreateOrderFunction.Request(
             ticketEvent.Id,
