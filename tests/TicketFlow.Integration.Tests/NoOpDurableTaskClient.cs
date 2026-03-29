@@ -12,6 +12,7 @@ internal sealed class NoOpDurableTaskClient() : DurableTaskClient("test")
 {
     public List<RaiseEventCall> RaiseEventCalls { get; } = [];
     public Exception? RaiseEventExceptionToThrow { get; set; }
+    public OrchestrationMetadata? InstanceMetadataToReturn { get; set; }
 
     public override Task<string> ScheduleNewOrchestrationInstanceAsync(
         TaskName orchestratorName,
@@ -24,7 +25,7 @@ internal sealed class NoOpDurableTaskClient() : DurableTaskClient("test")
         string instanceId,
         bool getInputsAndOutputs,
         CancellationToken cancellation)
-        => Task.FromResult<OrchestrationMetadata?>(null);
+        => Task.FromResult(InstanceMetadataToReturn);
 
     public override Task<OrchestrationMetadata?> GetInstancesAsync(
         string instanceId,

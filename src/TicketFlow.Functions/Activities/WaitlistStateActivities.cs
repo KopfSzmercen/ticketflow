@@ -32,28 +32,28 @@ public sealed class WaitlistStateActivities(
         }
 
         var now = DateTimeOffset.UtcNow;
-        if (input.Status == "OfferExpired")
+        switch (input.Status)
         {
-            if (entry.Status != WaitlistStatus.Offered) return; // safeguard
-            entry.Status = WaitlistStatus.OfferExpired;
-            entry.UpdatedAt = now;
-        }
-        else if (input.Status == "OfferDeclined")
-        {
-            if (entry.Status != WaitlistStatus.Offered) return; // safeguard
-            entry.Status = WaitlistStatus.OfferDeclined;
-            entry.UpdatedAt = now;
-        }
-        else if (input.Status == "Claimed")
-        {
-            if (entry.Status != WaitlistStatus.Offered) return; // safeguard
-            entry.Status = WaitlistStatus.Claimed;
-            entry.ClaimedAt = now;
-            entry.UpdatedAt = now;
+            case WaitlistStatus.OfferExpired:
+                if (entry.Status != WaitlistStatus.Offered) return; // safeguard
+                entry.Status = WaitlistStatus.OfferExpired;
+                entry.UpdatedAt = now;
+                break;
+            case WaitlistStatus.OfferDeclined:
+                if (entry.Status != WaitlistStatus.Offered) return; // safeguard
+                entry.Status = WaitlistStatus.OfferDeclined;
+                entry.UpdatedAt = now;
+                break;
+            case WaitlistStatus.Claimed:
+                if (entry.Status != WaitlistStatus.Offered) return; // safeguard
+                entry.Status = WaitlistStatus.Claimed;
+                entry.ClaimedAt = now;
+                entry.UpdatedAt = now;
+                break;
         }
 
         await dbContext.SaveChangesAsync();
     }
 
-    public sealed record Input(string EventId, string OfferInstanceId, string Status);
+    public sealed record Input(string EventId, string OfferInstanceId, WaitlistStatus Status);
 }

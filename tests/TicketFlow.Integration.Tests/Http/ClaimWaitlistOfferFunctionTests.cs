@@ -1,8 +1,6 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
+using Microsoft.DurableTask.Client;
 using Shouldly;
 using TicketFlow.Core.Models;
 using TicketFlow.Functions.Http;
@@ -17,11 +15,6 @@ namespace TicketFlow.Integration.Tests.Http;
 [Trait("Category", "Integration")]
 public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) : IntegrationTestsBase(fixture)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     [Fact]
     public async Task Run_ShouldRaiseEventAndReturnAccepted()
     {
@@ -50,10 +43,10 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
         await dbContext.SaveChangesAsync();
 
         var durableClient = new NoOpDurableTaskClient();
+        durableClient.InstanceMetadataToReturn = new OrchestrationMetadata("WaitlistOfferOrchestrator", offerInstanceId);
 
         var function = new ClaimWaitlistOfferFunction(
-            dbContext, 
-            Options.Create(new WaitlistOptions())
+            dbContext
         );
         var request = new ClaimWaitlistOfferFunction.Request(WaitlistOfferDecisionContract.AcceptValue);
 
@@ -72,7 +65,7 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
 
         httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
         var responseJson = await new StreamReader(httpContext.Response.Body).ReadToEndAsync();
-        
+
         responseJson.ShouldContain("Decision accepted and is being processed");
 
         // Assert: orchestration event raised with expected payload
@@ -112,12 +105,11 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
 
         var durableClient = new NoOpDurableTaskClient
         {
-            RaiseEventExceptionToThrow = new InvalidOperationException($"Orchestration instance '{offerInstanceId}' was not found.")
+            InstanceMetadataToReturn = null
         };
 
         var function = new ClaimWaitlistOfferFunction(
-            dbContext,
-            Options.Create(new WaitlistOptions())
+            dbContext
         );
         var request = new ClaimWaitlistOfferFunction.Request(WaitlistOfferDecisionContract.AcceptValue);
 
@@ -169,12 +161,12 @@ public class ClaimWaitlistOfferFunctionTests(CosmosDbContainerFixture fixture) :
 
         var durableClient = new NoOpDurableTaskClient
         {
+            InstanceMetadataToReturn = new OrchestrationMetadata("WaitlistOfferOrchestrator", offerInstanceId),
             RaiseEventExceptionToThrow = new TimeoutException("Durable backend timeout while raising event.")
         };
 
         var function = new ClaimWaitlistOfferFunction(
-            dbContext,
-            Options.Create(new WaitlistOptions())
+            dbContext
         );
         var request = new ClaimWaitlistOfferFunction.Request(WaitlistOfferDecisionContract.RejectValue);
 
