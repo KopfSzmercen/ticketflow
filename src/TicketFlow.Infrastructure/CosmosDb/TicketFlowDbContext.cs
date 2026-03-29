@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
 using TicketFlow.Core.Models;
 
@@ -6,6 +7,18 @@ namespace TicketFlow.Infrastructure.CosmosDb;
 
 public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) : DbContext(options)
 {
+    private static readonly ValueConverter<Money, string> MoneyConverter = new(
+        value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null),
+        value => JsonSerializer.Deserialize<Money>(value, (JsonSerializerOptions?)null)!);
+
+    private static readonly ValueConverter<Money?, string?> NullableMoneyConverter = new(
+        value => value == null
+            ? null
+            : JsonSerializer.Serialize(value, (JsonSerializerOptions?)null),
+        value => value == null || value == string.Empty
+            ? null
+            : JsonSerializer.Deserialize<Money>(value, (JsonSerializerOptions?)null));
+
     public DbSet<TicketEvent> Events => Set<TicketEvent>();
 
     public DbSet<Order> Orders => Set<Order>();
@@ -20,8 +33,8 @@ public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) 
             entity.HasKey(e => e.Id);
             entity.HasPartitionKey(e => e.Id);
 
-            entity.ComplexProperty(e => e.TicketPrice,
-                priceBuilder => { priceBuilder.Property(p => p.Currency).HasConversion<string>(); });
+            entity.Property(e => e.TicketPrice)
+                .HasConversion(MoneyConverter);
 
             modelBuilder.Entity<TicketEvent>()
                 .Property(e => e.ETag)
@@ -34,8 +47,8 @@ public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) 
             entity.HasKey(o => o.Id);
             entity.HasPartitionKey(o => o.Id);
 
-            entity.ComplexProperty(o => o.TicketPrice,
-                priceBuilder => { priceBuilder.Property(p => p.Currency).HasConversion<string>(); });
+            entity.Property(o => o.TicketPrice)
+                .HasConversion(MoneyConverter);
 
             entity.Property(o => o.Status)
                 .HasConversion<string>();
@@ -51,13 +64,7 @@ public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) 
             entity.HasPartitionKey(w => w.EventId);
 
             entity.Property(w => w.OfferedTicketPrice)
-                .HasConversion(
-                    value => value == null
-                        ? null
-                        : JsonSerializer.Serialize(value, (JsonSerializerOptions?)null),
-                    value => value == null || value == string.Empty
-                        ? null
-                        : JsonSerializer.Deserialize<Money>(value, (JsonSerializerOptions?)null));
+                .HasConversion(NullableMoneyConverter);
 
             entity.Property(w => w.Status)
                 .HasConversion<string>();

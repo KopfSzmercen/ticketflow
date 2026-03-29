@@ -23,24 +23,7 @@ public class IntegrationTestsBase : IAsyncLifetime
 
     public virtual async Task DisposeAsync()
     {
-        await ClearDatabaseAsync();
+        await Fixture.ClearDatabaseAsync();
         await Fixture.ClearTicketsContainerAsync();
-    }
-
-    private async Task ClearDatabaseAsync()
-    {
-        await using var scope = Fixture.Services.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
-
-        var allTicketEvents = await dbContext.Events.ToListAsync();
-        dbContext.Events.RemoveRange(allTicketEvents);
-
-        var allOrders = await dbContext.Orders.ToListAsync();
-        dbContext.Orders.RemoveRange(allOrders);
-
-        var allWaitlistEntries = await dbContext.WaitlistEntries.ToListAsync();
-        dbContext.WaitlistEntries.RemoveRange(allWaitlistEntries);
-
-        await dbContext.SaveChangesAsync();
     }
 }

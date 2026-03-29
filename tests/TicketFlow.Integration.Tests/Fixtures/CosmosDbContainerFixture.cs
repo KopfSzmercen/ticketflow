@@ -106,6 +106,15 @@ public sealed class CosmosDbContainerFixture : IAsyncLifetime
         await containerClient.CreateIfNotExistsAsync();
     }
 
+    public async Task ClearDatabaseAsync()
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
+
+        await dbContext.Database.EnsureDeletedAsync();
+        await _host.EnsureCosmosDbInitializedAsync();
+    }
+
     private async Task EnsureTicketsContainerExistsAsync()
     {
         await using var scope = Services.CreateAsyncScope();

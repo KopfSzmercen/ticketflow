@@ -131,16 +131,8 @@ public sealed class DurableFunctionsHostFixture : IAsyncLifetime
         await using var scope = Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
 
-        var allTicketEvents = await dbContext.Events.ToListAsync();
-        dbContext.Events.RemoveRange(allTicketEvents);
-
-        var allOrders = await dbContext.Orders.ToListAsync();
-        dbContext.Orders.RemoveRange(allOrders);
-
-        var allWaitlistEntries = await dbContext.WaitlistEntries.ToListAsync();
-        dbContext.WaitlistEntries.RemoveRange(allWaitlistEntries);
-
-        await dbContext.SaveChangesAsync();
+        await dbContext.Database.EnsureDeletedAsync();
+        await _host.EnsureCosmosDbInitializedAsync();
     }
 
     private async Task StartFunctionsHostAsync(int httpPort, string cosmosConnectionString)
