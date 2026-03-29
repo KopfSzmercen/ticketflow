@@ -8,7 +8,7 @@ public enum Currency
     Jpy
 }
 
-public sealed class Money
+public sealed record Money
 {
     public Money(decimal amount, string currency)
     {
@@ -19,6 +19,6 @@ public sealed class Money
         Currency = currency;
     }
 
-    public decimal Amount { get; private set; }
-    public string Currency { get; private set; }
+    public decimal Amount { get; init; }
+    public string Currency { get; init; }
 }

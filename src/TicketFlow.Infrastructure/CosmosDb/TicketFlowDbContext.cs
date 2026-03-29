@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using TicketFlow.Core.Models;
 
 namespace TicketFlow.Infrastructure.CosmosDb;
@@ -48,6 +49,15 @@ public class TicketFlowDbContext(DbContextOptions<TicketFlowDbContext> options) 
             entity.ToContainer("waitlist");
             entity.HasKey(w => w.Id);
             entity.HasPartitionKey(w => w.EventId);
+
+            entity.Property(w => w.OfferedTicketPrice)
+                .HasConversion(
+                    value => value == null
+                        ? null
+                        : JsonSerializer.Serialize(value, (JsonSerializerOptions?)null),
+                    value => value == null || value == string.Empty
+                        ? null
+                        : JsonSerializer.Deserialize<Money>(value, (JsonSerializerOptions?)null));
 
             entity.Property(w => w.Status)
                 .HasConversion<string>();

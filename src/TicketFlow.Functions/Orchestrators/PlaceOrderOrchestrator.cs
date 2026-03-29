@@ -7,7 +7,11 @@ using TicketFlow.Functions.Waitlist;
 
 namespace TicketFlow.Functions.Orchestrators;
 
-public sealed record PlaceOrderInput(string EventId, bool SimulatePaymentSuccess, bool PayLater = false);
+public sealed record PlaceOrderInput(
+    string EventId,
+    bool SimulatePaymentSuccess,
+    bool PayLater = false,
+    Money? TicketPrice = null);
 
 /// <summary>
 ///     Durable orchestrator that coordinates the single-ticket purchase flow.
@@ -85,7 +89,10 @@ public class PlaceOrderOrchestrator(IOptions<WaitlistOptions> waitlistOptions)
 
             await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
                 nameof(OfferNextWaitlistEntryActivity),
-                new OfferNextWaitlistEntryActivity.Input(input.EventId, _offerDurationInMinutes)
+                new OfferNextWaitlistEntryActivity.Input(
+                    input.EventId,
+                    _offerDurationInMinutes,
+                    input.TicketPrice)
             );
 
             await context.CallActivityAsync(
@@ -148,7 +155,10 @@ public class PlaceOrderOrchestrator(IOptions<WaitlistOptions> waitlistOptions)
 
         await context.CallActivityAsync<OfferNextWaitlistEntryActivity.Result?>(
             nameof(OfferNextWaitlistEntryActivity),
-            new OfferNextWaitlistEntryActivity.Input(input.EventId, _offerDurationInMinutes)
+            new OfferNextWaitlistEntryActivity.Input(
+                input.EventId,
+                _offerDurationInMinutes,
+                input.TicketPrice)
         );
 
         await context.CallActivityAsync(

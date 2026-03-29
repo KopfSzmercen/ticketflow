@@ -45,7 +45,7 @@ public class JoinWaitlistFunctionTests(CosmosDbContainerFixture fixture) : Integ
         await dbContext.SaveChangesAsync();
 
         var function = new JoinWaitlistFunction(dbContext, NullLogger<JoinWaitlistFunction>.Instance);
-        var request = new JoinWaitlistFunction.Request("attendee-123", "attendee@example.com");
+        var request = new JoinWaitlistFunction.Request("attendee-123", "Attendee One", "attendee@example.com");
 
         var httpContext = new DefaultHttpContext
         {
@@ -67,11 +67,13 @@ public class JoinWaitlistFunctionTests(CosmosDbContainerFixture fixture) : Integ
         response.ShouldNotBeNull();
         response.EventId.ShouldBe(soldOutEvent.Id);
         response.AttendeeId.ShouldBe(request.AttendeeId);
+        response.AttendeeName.ShouldBe(request.AttendeeName);
         response.AttendeeContact.ShouldBe(request.AttendeeContact);
         response.Status.ShouldBe(nameof(WaitlistStatus.Waiting));
         response.OfferInstanceId.ShouldBeNull();
         response.OfferedAt.ShouldBeNull();
         response.OfferExpiresAt.ShouldBeNull();
+        response.OfferedTicketPrice.ShouldBeNull();
         response.ClaimedAt.ShouldBeNull();
 
         // Assert: persisted to Cosmos waitlist container
@@ -85,6 +87,7 @@ public class JoinWaitlistFunctionTests(CosmosDbContainerFixture fixture) : Integ
         persisted.ShouldNotBeNull();
         persisted.EventId.ShouldBe(soldOutEvent.Id);
         persisted.AttendeeId.ShouldBe(request.AttendeeId);
+        persisted.AttendeeName.ShouldBe(request.AttendeeName);
         persisted.AttendeeContact.ShouldBe(request.AttendeeContact);
         persisted.Status.ShouldBe(WaitlistStatus.Waiting);
     }
@@ -97,7 +100,7 @@ public class JoinWaitlistFunctionTests(CosmosDbContainerFixture fixture) : Integ
         var dbContext = scope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
 
         var function = new JoinWaitlistFunction(dbContext, NullLogger<JoinWaitlistFunction>.Instance);
-        var request = new JoinWaitlistFunction.Request("attendee-404", "attendee404@example.com");
+        var request = new JoinWaitlistFunction.Request("attendee-404", "Attendee Missing Event", "attendee404@example.com");
         var missingEventId = Guid.NewGuid().ToString();
 
         var httpContext = new DefaultHttpContext
@@ -150,7 +153,7 @@ public class JoinWaitlistFunctionTests(CosmosDbContainerFixture fixture) : Integ
         await dbContext.SaveChangesAsync();
 
         var function = new JoinWaitlistFunction(dbContext, NullLogger<JoinWaitlistFunction>.Instance);
-        var request = new JoinWaitlistFunction.Request("attendee-409", "attendee409@example.com");
+        var request = new JoinWaitlistFunction.Request("attendee-409", "Attendee Available Event", "attendee409@example.com");
 
         var httpContext = new DefaultHttpContext
         {

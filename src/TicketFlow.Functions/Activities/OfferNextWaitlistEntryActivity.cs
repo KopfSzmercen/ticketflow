@@ -1,5 +1,6 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask.Client;
+using TicketFlow.Core.Models;
 using TicketFlow.Functions.Waitlist;
 
 namespace TicketFlow.Functions.Activities;
@@ -18,6 +19,7 @@ public sealed class OfferNextWaitlistEntryActivity(
             input.EventId,
             input.OfferDurationInMinutes,
             now,
+            input.OfferedTicketPrice,
             true,
             client
         );
@@ -36,7 +38,10 @@ public sealed class OfferNextWaitlistEntryActivity(
         );
     }
 
-    public sealed record Input(string EventId, int OfferDurationInMinutes);
+    public sealed record Input(
+        string EventId,
+        int OfferDurationInMinutes,
+        Money? OfferedTicketPrice = null);
 
     public sealed record Result(
         string WaitlistEntryId,

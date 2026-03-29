@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TicketFlow.Functions.Activities;
+using TicketFlow.Functions.Orders;
 using TicketFlow.Functions.Qr;
 using TicketFlow.Functions.Waitlist;
 using TicketFlow.Infrastructure.BlobStorage;
@@ -17,6 +18,7 @@ builder.Services.AddBlobStorageModule();
 builder.Services.AddOptions<WaitlistOptions>().BindConfiguration(WaitlistOptions.SectionName);
 builder.Services.AddSingleton<IQrCodeGenerator, QrCodeGenerator>();
 builder.Services.AddSingleton<IOrderCompletedEventPublisher, ServiceBusOrderCompletedEventPublisher>();
+builder.Services.AddScoped<IOrderCreationService, OrderCreationService>();
 builder.Services.AddScoped<IWaitlistOfferCoordinator, WaitlistOfferCoordinator>();
 
 var app = builder.Build();
